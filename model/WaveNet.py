@@ -1,7 +1,7 @@
 from keras.layers import Conv1D, Multiply, Add, Activation, Lambda, Dense
 from keras.engine import Input, Model
 
-def residual_block(input, num_filters, dilation_rate,
+def residual_block(input, num_filters, dilation_rate, stack,
                    filter_size=3, use_bias=True):
 
     # Gated Activation Unit
@@ -11,25 +11,34 @@ def residual_block(input, num_filters, dilation_rate,
                            dilation_rate=dilation_rate,
                            padding='same',
                            use_bias=use_bias,
-                           activation='tanh')(input)
+                           activation='tanh',
+                           name='filter - stack: %d, dilation: %d'%(stack, dilation_rate))(input)
 
     # Gate:
     gate_output = Conv1D(num_filters, filter_size,
                          dilation_rate=dilation_rate,
                          padding='same',
                          use_bias=use_bias,
-                         activation='sigmoid')(input)
+                         activation='sigmoid',
+                         name='gate - stack: %d, dilation: %d'%(stack, dilation_rate))(input)
 
     output = Multiply()([filter_output, gate_output])
+
 
     # Skip & Residual Connection Outputs
     # ==================================
     # Skip Connection
-    skip_output = Conv1D(num_filters, filter_size, padding='same', use_bias=use_bias)(output)
+    skip_output = Conv1D(num_filters, filter_size,
+                         padding='same',
+                         use_bias=use_bias,
+                         name='skip - stack: %d, dilation: %d'%(stack, dilation_rate))(output)
 
     # Residual Connection
-    residual_output = Conv1D(num_filters, filter_size, padding='same', use_bias=use_bias)(output)
-    residual_output = Add()([input, residual_output])
+    residual_output = Conv1D(num_filters, filter_size,
+                             padding='same',
+                             use_bias=use_bias,
+                             name='residual_conv - stack: %d, dilation: %d'%(stack, dilation_rate))(output)
+    residual_output = Add(name=name='residual_add - stack: %d, dilation: %d'%(stack, dilation_rate))([input, residual_output])
 
     return residual_output, skip_output
 
@@ -38,7 +47,10 @@ def wavenet_base(input, num_filters, num_stacks, dilation_depth,
                  filter_size=3, use_bias=True, used_connections='skip'):
 
     # Initial convolution - leave out?
-    output = Conv1D(num_filters, filter_size, padding='same', use_bias=use_bias)(input)
+    output = Conv1D(num_filters, filter_size,
+                    padding='same',
+                    use_bias=use_bias,
+                    name='Initial Conv1D')(input)
 
     # Residual Blocks:
     # ================
@@ -51,36 +63,51 @@ def wavenet_base(input, num_filters, num_stacks, dilation_depth,
 
     # Which connections should be used? skip, residual or both (default is skip)
     if used_connections == 'skip':
-        output = Add()(skip_connections)
+        output = Add(name='add skip connections')(skip_connections)
     elif used_connections == 'both':
         skip_connections.append(output)
-        output = Add()(skip_connections)
+        output = Add(name='add skip & residual connections')(skip_connections)
 
     return output
 
 # add dense layers after the WaveNet base, needs to be tested, will most probably yield bad results (shape(6561, 256) => shape(512)? decreasement of factor 3280...)
 def final_output_dense(input, num_filters, num_output_bins,
                        use_bias=True):
-    output = Activation('relu')(input)
-    output = Dense(num_filters, use_bias=use_bias)(output)
 
-    output = Activation('relu')(output)
-    output = Dense(num_output_bins, use_bias=use_bias)(output)
-    output = Activation('softmax')(output)
+    output = Activation('relu', name='ReLU 1 final')(input)
+    output = Dense(num_filters,
+                   use_bias=use_bias,
+                   name='Dense 1 final')(output)
+
+    output = Activation('relu', name='ReLU 2 final')(output)
+    output = Dense(num_output_bins,
+                   use_bias=use_bias,
+                   name='Dense 1 final')(output)
+    output = Activation('softmax', name='Softmax final')(output)
 
     return output
 
 # add the output method mentioned in the WaveNet Paper
 def final_output_conv(input, num_output_bins, utterance_length,
                       use_bias=True, output_filter_size=1):
-    output = Activation('relu')(input)
-    output = Conv1D(num_output_bins, output_filter_size, padding='same', use_bias=use_bias)(output)
 
-    output = Activation('relu')(output)
-    output = Conv1D(num_output_bins, output_filter_size, padding='same', use_bias=use_bias)(output)
+    output = Activation('relu', name='ReLU 1 final')(input)
+    output = Conv1D(num_output_bins, output_filter_size,
+                    padding='same',
+                    use_bias=use_bias,
+                    name='Conv1D 1 final')(output)
+
+    output = Activation('relu', name='ReLU 2 final')(output)
+    output = Conv1D(num_output_bins, output_filter_size,
+                    padding='same',
+                    use_bias=use_bias,
+                    name='Conv1D 2 final')(output)
 
     middle_bin_id = int((utterance_length - 1) / 2)
-    output = Lambda(lambda x: x[:,middle_bin_id,:], output_shape=(output._keras_shape[-1],))(output)
-    output = Activation('softmax')(output)
+    output = Lambda(lambda x: x[:,middle_bin_id,:],
+                    output_shape=(output._keras_shape[-1],),
+                    name='Select only bin in middle')(output)
+
+    output = Activation('softmax', name='Softmax final')(output)
 
     return output

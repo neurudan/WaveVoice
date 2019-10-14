@@ -4,23 +4,28 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-def ulaw(x, u=255):
+def ulaw(x):
+    u = 255
     x = np.sign(x) * (np.log(1 + u * np.abs(x)) / np.log(1 + u))
     x = (x + 1.) / 2. * np.iinfo('uint8').max
     return x.astype('uint8')
 
-def create_h5_file(h5_path, audio_dict, dtype, use_ulaw=True):
+def create_h5_file(h5_path, audio_dict, dtype='float32', use_ulaw=False):
     dt = h5py.special_dtype(vlen=np.dtype(dtype))
+    if use_ulaw:
+        dt = h5py.special_dtype(vlen=np.dtype('uint8'))
     with h5py.File(h5_path, 'w') as f:
+        data = f.create_group('data')
+        statistics = f.create_group('statistics')
         for speaker in audio_dict:
-            speaker_group = f.create_group(speaker)
-            speaker_group.create_dataset('data', (len(audio_dict[speaker]),), dtype=dt)
+            data.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=dt)
+            statistics.create_dataset(speaker, (len(audio_dict[speaker]),), dtype='long')
 
     total = 0
     for speaker in audio_dict:
         total += len(audio_dict[speaker])
 
-    pbar = tqdm(total=total, desc='audio extraction')
+    pbar = tqdm(total=total, desc='audio extraction', ncols=100, ascii=True)
 
     for speaker in audio_dict:
         for i, audio_file in enumerate(audio_dict[speaker]):
@@ -28,7 +33,8 @@ def create_h5_file(h5_path, audio_dict, dtype, use_ulaw=True):
             if use_ulaw:
                 x = ulaw(x)
             with h5py.File(h5_path, 'a') as f:
-                f[speaker+'/data'][i] = x
+                f['data/'+speaker][i] = x
+                f['statistics/'+speaker][i] = len(x)
             pbar.update(1)
     pbar.close()
 
@@ -62,7 +68,7 @@ def prepare_vox2_dict(vox2_path):
         vox2_path += '/'
 
     for set in ['train/', 'test/']:
-        for speaker in tqdm(os.listdir(vox2_path+set+'aac/'), desc='read '+set):
+        for speaker in tqdm(os.listdir(vox2_path+set+'aac/'), ncols=100, ascii=True, desc='vox2 read '+set):
             audio_files = []
             for video in os.listdir(vox2_path+set+'aac/'+speaker):
                 for audio in os.listdir(vox2_path+set+'aac/'+speaker+'/'+video):
@@ -71,5 +77,5 @@ def prepare_vox2_dict(vox2_path):
             vox2_dict[speaker] = audio_files
     return vox2_dict
 
-timit_dict = prepare_vox2_dict('/data/Datasets/VOX2/')
-create_h5_file('vox2_original.h5', timit_dict, 'float32', False)
+timit_dict = prepare_timit_dict('/data/Datasets/TIMIT/')
+create_h5_file('dataset/timit/timit_ulaw.h5', timit_dict, 'uint8', use_ulaw=True)

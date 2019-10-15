@@ -12,7 +12,7 @@ def residual_block(input, num_filters, dilation_rate, stack,
                            padding='same',
                            use_bias=use_bias,
                            activation='tanh',
-                           name='filter - stack: %d, dilation: %d'%(stack, dilation_rate))(input)
+                           name='filter-stack%d_dilation%d'%(stack, dilation_rate))(input)
 
     # Gate:
     gate_output = Conv1D(num_filters, filter_size,
@@ -20,7 +20,7 @@ def residual_block(input, num_filters, dilation_rate, stack,
                          padding='same',
                          use_bias=use_bias,
                          activation='sigmoid',
-                         name='gate - stack: %d, dilation: %d'%(stack, dilation_rate))(input)
+                         name='gate-stack%d_dilation%d'%(stack, dilation_rate))(input)
 
     output = Multiply()([filter_output, gate_output])
 
@@ -31,14 +31,14 @@ def residual_block(input, num_filters, dilation_rate, stack,
     skip_output = Conv1D(num_filters, filter_size,
                          padding='same',
                          use_bias=use_bias,
-                         name='skip - stack: %d, dilation: %d'%(stack, dilation_rate))(output)
+                         name='skip-stack%d_dilation%d'%(stack, dilation_rate))(output)
 
     # Residual Connection
     residual_output = Conv1D(num_filters, filter_size,
                              padding='same',
                              use_bias=use_bias,
-                             name='residual_conv - stack: %d, dilation: %d'%(stack, dilation_rate))(output)
-    residual_output = Add(name=name='residual_add - stack: %d, dilation: %d'%(stack, dilation_rate))([input, residual_output])
+                             name='residual_conv-stack%d_dilation%d'%(stack, dilation_rate))(output)
+    residual_output = Add(name='residual_add-stack%d_dilation%d'%(stack, dilation_rate))([input, residual_output])
 
     return residual_output, skip_output
 
@@ -50,23 +50,23 @@ def wavenet_base(input, num_filters, num_stacks, dilation_depth,
     output = Conv1D(num_filters, filter_size,
                     padding='same',
                     use_bias=use_bias,
-                    name='Initial Conv1D')(input)
+                    name='Initial_Conv1D')(input)
 
     # Residual Blocks:
     # ================
     skip_connections = []
     for stack in range(num_stacks):
-        for dilation_rate in range(0, dilation_depth + 1):
+        for dilation_rate in range(1, dilation_depth + 1):
             output, skip_output = residual_block(output, num_filters, dilation_rate,
-                                                 filter_size, use_bias)
+                                                 stack, filter_size, use_bias)
             skip_connections.append(skip_output)
 
     # Which connections should be used? skip, residual or both (default is skip)
     if used_connections == 'skip':
-        output = Add(name='add skip connections')(skip_connections)
+        output = Add(name='add_skip_connections')(skip_connections)
     elif used_connections == 'both':
         skip_connections.append(output)
-        output = Add(name='add skip & residual connections')(skip_connections)
+        output = Add(name='add-skip&residual_connections')(skip_connections)
 
     return output
 
@@ -74,16 +74,16 @@ def wavenet_base(input, num_filters, num_stacks, dilation_depth,
 def final_output_dense(input, num_filters, num_output_bins,
                        use_bias=True):
 
-    output = Activation('relu', name='ReLU 1 final')(input)
+    output = Activation('relu', name='ReLU_1_final')(input)
     output = Dense(num_filters,
                    use_bias=use_bias,
-                   name='Dense 1 final')(output)
+                   name='Dense_1_final')(output)
 
-    output = Activation('relu', name='ReLU 2 final')(output)
+    output = Activation('relu', name='ReLU_2_final')(output)
     output = Dense(num_output_bins,
                    use_bias=use_bias,
-                   name='Dense 1 final')(output)
-    output = Activation('softmax', name='Softmax final')(output)
+                   name='Dense_2_final')(output)
+    output = Activation('softmax', name='Softmax_final')(output)
 
     return output
 
@@ -91,23 +91,23 @@ def final_output_dense(input, num_filters, num_output_bins,
 def final_output_conv(input, num_output_bins, utterance_length,
                       use_bias=True, output_filter_size=1):
 
-    output = Activation('relu', name='ReLU 1 final')(input)
+    output = Activation('relu', name='ReLU_1_final')(input)
     output = Conv1D(num_output_bins, output_filter_size,
                     padding='same',
                     use_bias=use_bias,
-                    name='Conv1D 1 final')(output)
+                    name='Conv1D_1_final')(output)
 
-    output = Activation('relu', name='ReLU 2 final')(output)
+    output = Activation('relu', name='ReLU_2_final')(output)
     output = Conv1D(num_output_bins, output_filter_size,
                     padding='same',
                     use_bias=use_bias,
-                    name='Conv1D 2 final')(output)
+                    name='Conv1D_2_final')(output)
 
     middle_bin_id = int((utterance_length - 1) / 2)
     output = Lambda(lambda x: x[:,middle_bin_id,:],
                     output_shape=(output._keras_shape[-1],),
-                    name='Select only bin in middle')(output)
+                    name='Select_only_bin_in_middle')(output)
 
-    output = Activation('softmax', name='Softmax final')(output)
+    output = Activation('softmax', name='Softmax_final')(output)
 
     return output

@@ -16,6 +16,9 @@ def find_in_path(path, extension):
             files[file] = path + file
     return files
 
+def get_result_dir():
+    return get_base_dir() + 'results/'
+
 def get_dataset_base_path():
     return get_base_dir() + 'dataset/'
 

@@ -1,4 +1,4 @@
-from keras.layers import Conv1D, Multiply, Add, Activation, Lambda, Dense
+from keras.layers import Conv1D, Multiply, Add, Activation, Lambda, Dense, Flatten
 from keras.engine import Input, Model
 
 def residual_block(input, num_filters, dilation_rate, stack,
@@ -73,16 +73,23 @@ def wavenet_base(input, num_filters, num_stacks, dilation_depth,
 # add dense layers after the WaveNet base, needs to be tested, will most probably yield bad results (shape(6561, 256) => shape(512)? decreasement of factor 3280...)
 def final_output_dense(input, num_filters, num_output_bins,
                        use_bias=True):
+    output = Flatten()(input)
+    if type(num_filters) is list:
+        for i, num_filter in enumerate(num_filters):
+            output = Activation('relu', name='ReLU_%d_final'%i)(output)
+            output = Dense(num_filter,
+                           use_bias=use_bias,
+                           name='Dense_%d_final'%i)(output)
+    else:
+        output = Activation('relu', name='ReLU_1_final')(output)
+        output = Dense(num_filters,
+                       use_bias=use_bias,
+                       name='Dense_1_final')(output)
 
-    output = Activation('relu', name='ReLU_1_final')(input)
-    output = Dense(num_filters,
-                   use_bias=use_bias,
-                   name='Dense_1_final')(output)
-
-    output = Activation('relu', name='ReLU_2_final')(output)
+    output = Activation('relu', name='ReLU_final')(output)
     output = Dense(num_output_bins,
                    use_bias=use_bias,
-                   name='Dense_2_final')(output)
+                   name='Dense_final')(output)
     output = Activation('softmax', name='Softmax_final')(output)
 
     return output
@@ -90,7 +97,6 @@ def final_output_dense(input, num_filters, num_output_bins,
 # add the output method mentioned in the WaveNet Paper
 def final_output_conv(input, num_output_bins, utterance_length,
                       use_bias=True, output_filter_size=1):
-
     output = Activation('relu', name='ReLU_1_final')(input)
     output = Conv1D(num_output_bins, output_filter_size,
                     padding='same',

@@ -30,6 +30,7 @@ class DataGenerator:
         self.dataset = dataset
         self.sequence_length = sequence_length
         self.batch_size = batch_size
+        self.use_ulaw = use_ulaw
         self.data = h5py.File(get_dataset_file(dataset, use_ulaw), 'r')
 
     def calculate_speaker_statistics(self, speakers):
@@ -41,6 +42,7 @@ class DataGenerator:
     def sample_enqueuer(self, queue):
         statistics = {}
         empty_label = np.zeros(self.num_speakers)
+        empty_sample = np.zeros((self.sequence_length, 256))
         for speaker in self.speakers:
             statistics[speaker] = self.data['statistics/'+speaker][:]
             statistics[speaker+'_size'] = len(self.data['statistics/'+speaker][:])
@@ -53,11 +55,19 @@ class DataGenerator:
                 label[self.speakers.index(speaker)] = 1
                 sample_id = np.argmax(np.random.uniform(size=statistics[speaker+'_size']) * statistics[speaker])
                 start_id = np.random.randint(statistics[speaker][sample_id] - self.sequence_length)
-                samples.append(self.data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length])
+                sample = self.data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length]
+                if self.use_ulaw:
+                    sample = sample.reshape(sample.shape[0], 1)
+                    new_sample = empty_sample.copy()
+                    new_sample[sample] = 1
+                    sample = new_sample
+                samples.append(sample)
                 labels.append(label)
             samples = np.array(samples)
             shape = samples.shape
-            queue.put([samples.reshape(shape[0], shape[1], 1), np.array(labels)])
+            if not self.use_ulaw:
+                samples = samples.reshape(shape[0], shape[1], 1)
+            queue.put([samples, np.array(labels)])
 
     def terminate_queue(self):
         self.sample_enqueuer.terminate()

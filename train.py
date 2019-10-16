@@ -54,7 +54,9 @@ if __name__ == '__main__':
     num_epochs = int(config['TRAINING']['num_epochs'])
     steps_per_epoch = int(config['TRAINING']['steps_per_epoch'])
 
-    utterance_length = (dilation_base ** dilation_depth) * (filter_size - 1) - 1
+    utterance_length = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
+    if dilation_base == filter_size:
+        utterance_length = filter_size ** dilation_depth
 
     speakers = get_speakers(dataset, speaker_list)
     num_output_bins = len(speakers)

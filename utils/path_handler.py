@@ -1,4 +1,6 @@
 import os
+import shutil
+
 
 def get_base_dir():
     path = os.path.abspath(__file__)
@@ -32,3 +34,15 @@ def get_dataset_file(dataset, use_ulaw=False):
 
 def get_speaker_list_files(dataset):
     return find_in_path(get_dataset_path(dataset) + 'speaker_lists/', '.txt')
+
+def get_config_path():
+    return get_base_dir() + 'configs/'
+
+def create_result_dir(name):
+    path = get_result_dir() + name + '/'
+    try:
+        shutil.rmtree(path, ignore_errors=False, onerror=None)
+    except:
+        pass
+    os.makedirs(path, exist_ok=True)
+    return path

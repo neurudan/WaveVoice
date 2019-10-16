@@ -1,1 +1,4 @@
 dataset/*/*.h5
+results/*
+configs/*
+!configs/default.cfg

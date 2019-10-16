@@ -89,7 +89,7 @@ if __name__ == '__main__':
     elif used_output == 'conv_v3':
         output = final_output_conv_v3(wavenet, filter_size, conv_v3_downsample_factor, num_output_bins, utterance_length)
 
-    result_folder = create_result_dir(config_name[:-4])
+    result_folder = create_result_dir(config_name)
 
     csv_logger = CSVLogger(result_folder + 'logs.csv')
     net_saver = ModelCheckpoint(result_folder + 'best.h5', monitor='accuracy', save_best_only=True)

@@ -39,10 +39,12 @@ def get_config_path():
     return get_base_dir() + 'configs/'
 
 def create_result_dir(name):
-    path = get_result_dir() + name + '/'
+    path = get_result_dir() + name[:-4] + '/'
     try:
         shutil.rmtree(path, ignore_errors=False, onerror=None)
     except:
         pass
     os.makedirs(path, exist_ok=True)
+    config = get_config_path() + name
+    shutil.copyfile(config, path + name)
     return path

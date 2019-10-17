@@ -53,6 +53,7 @@ if __name__ == '__main__':
     batch_size = int(config['TRAINING']['batch_size'])
     num_epochs = int(config['TRAINING']['num_epochs'])
     steps_per_epoch = int(config['TRAINING']['steps_per_epoch'])
+    val_set = float(config['TRAINING']['val_set'])
 
     utterance_length = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
     if dilation_base == filter_size:
@@ -67,10 +68,13 @@ if __name__ == '__main__':
     optimizer = optimizers[used_optimizer]
 
 
-    dg = DataGenerator(dataset, utterance_length, batch_size, speakers, use_ulaw)
-    bg = dg.batch_generator()
-    bg.__next__()
+    data_generator = DataGenerator(dataset, utterance_length, batch_size, speakers, use_ulaw, val_set)
 
+    train_generator = data_generator.train_batch_generator()
+    train_generator.__next__()
+
+    val_generator = data_generator.val_batch_generator()
+    val_generator.__next__()
 
     input = Input(shape=(utterance_length,1), name='input')
     if use_ulaw:
@@ -98,6 +102,15 @@ if __name__ == '__main__':
 
     model = Model(input, output)
     model.summary()
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
-    model.fit_generator(bg, steps_per_epoch=100, epochs=num_epochs, callbacks=[csv_logger, net_saver])
+    model.compile(optimizer=optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    model.fit_generator(train_generator,
+                        steps_per_epoch=steps_per_epoch,
+                        validation_data=val_generator,
+                        validation_steps=steps_per_epoch,
+                        epochs=num_epochs,
+                        callbacks=[csv_logger, net_saver])
+
     model.save(result_folder + 'final.h5')

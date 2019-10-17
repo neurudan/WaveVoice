@@ -70,40 +70,42 @@ class DataGenerator:
     def sample_enqueuer(self, set):
         empty_label = np.zeros(self.num_speakers)
         empty_sample = np.zeros((self.sequence_length, 256))
-        with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
-            while True:
-                samples = []
-                labels = []
-                for i in range(self.batch_size):
-                    speaker = self.speakers[np.argmax(np.random.uniform(size=self.num_speakers))]
-                    label = empty_label.copy()
-                    label[self.speakers.index(speaker)] = 1
+        while True:
+            samples = []
+            labels = []
+            for i in range(self.batch_size):
+                speaker = self.speakers[np.argmax(np.random.uniform(size=self.num_speakers))]
+                label = empty_label.copy()
+                label[self.speakers.index(speaker)] = 1
 
-                    ids, times = zip(*self.statistics[speaker][set])
-                    temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
-                    sample_id = ids[temp_id]
+                ids, times = zip(*self.statistics[speaker][set])
+                temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
+                sample_id = ids[temp_id]
 
-                    start_id = np.random.randint(times[temp_id] - self.sequence_length)
+                start_id = np.random.randint(times[temp_id] - self.sequence_length)
+                sample = None
+
+                with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
                     sample = data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length]
 
-                    if self.use_ulaw:
-                        sample = sample.reshape(sample.shape[0], 1)
-                        new_sample = empty_sample.copy()
-                        new_sample[sample] = 1
-                        sample = new_sample
+                if self.use_ulaw:
+                    sample = sample.reshape(sample.shape[0], 1)
+                    new_sample = empty_sample.copy()
+                    new_sample[sample] = 1
+                    sample = new_sample
 
-                    samples.append(sample)
-                    labels.append(label)
-                samples = np.array(samples)
+                samples.append(sample)
+                labels.append(label)
+            samples = np.array(samples)
 
-                if not self.use_ulaw:
-                    shape = samples.shape
-                    samples = samples.reshape(shape[0], shape[1], 1)
+            if not self.use_ulaw:
+                shape = samples.shape
+                samples = samples.reshape(shape[0], shape[1], 1)
 
-                if set == 'val':
-                    self.val_queue.put([samples, np.array(labels)])
-                elif set == 'train':
-                    self.train_queue.put([samples, np.array(labels)])
+            if set == 'val':
+                self.val_queue.put([samples, np.array(labels)])
+            elif set == 'train':
+                self.train_queue.put([samples, np.array(labels)])
 
     def terminate_queue(self):
         self.train_enqueuer.terminate()

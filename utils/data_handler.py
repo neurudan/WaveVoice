@@ -69,6 +69,7 @@ class DataGenerator:
         empty_sample = np.zeros((self.sequence_length, 256))
         with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
             while True:
+                p1 = time.time()
                 samples = []
                 labels = []
                 set = 'train'

@@ -29,7 +29,10 @@ if __name__ == '__main__':
 
     dataset = config['DATASET']['base']
     speaker_list = config['DATASET']['speaker_list']
-    use_ulaw = bool(config['DATASET']['use_ulaw'])
+    use_ulaw_str = config['DATASET']['use_ulaw']
+    use_ulaw = True
+    if use_ulaw_str == 'False':
+        use_ulaw = False
 
     dilation_base = int(config['WAVENET']['dilation_base'])
     dilation_depth = int(config['WAVENET']['dilation_depth'])

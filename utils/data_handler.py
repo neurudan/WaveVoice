@@ -54,11 +54,8 @@ class DataGenerator:
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
 
-        self.train_enqueuer = Process(target=self.sample_enqueuer, args=('train',))
-        self.train_enqueuer.start()
-
-        self.val_enqueuer = Process(target=self.sample_enqueuer, args=('val',))
-        self.val_enqueuer.start()
+        self.sample_enqueuer = Process(target=self.sample_enqueuer)
+        self.sample_enqueuer.start()
 
     def calculate_speaker_statistics(self, speakers):
         statistics = []
@@ -67,45 +64,48 @@ class DataGenerator:
                 statistics.append([speaker, np.sum(data['statistics/'+speaker][:])])
         return statistics
 
-    def sample_enqueuer(self, set):
+    def sample_enqueuer(self):
         empty_label = np.zeros(self.num_speakers)
         empty_sample = np.zeros((self.sequence_length, 256))
-        while True:
-            samples = []
-            labels = []
-            for i in range(self.batch_size):
-                speaker = self.speakers[np.argmax(np.random.uniform(size=self.num_speakers))]
-                label = empty_label.copy()
-                label[self.speakers.index(speaker)] = 1
+        with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+            while True:
+                samples = []
+                labels = []
+                set = 'train'
+                if self.train_queue.qsize() > self.val_queue.qsize():
+                    set = 'val'
+                for i in range(self.batch_size):
+                    speaker = self.speakers[np.argmax(np.random.uniform(size=self.num_speakers))]
+                    label = empty_label.copy()
+                    label[self.speakers.index(speaker)] = 1
 
-                ids, times = zip(*self.statistics[speaker][set])
-                temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
-                sample_id = ids[temp_id]
+                    ids, times = zip(*self.statistics[speaker][set])
+                    temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
+                    sample_id = ids[temp_id]
 
-                start_id = np.random.randint(times[temp_id] - self.sequence_length)
-                sample = None
-
-                with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+                    start_id = np.random.randint(times[temp_id] - self.sequence_length)
                     sample = data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length]
 
-                if self.use_ulaw:
-                    sample = sample.reshape(sample.shape[0], 1)
-                    new_sample = empty_sample.copy()
-                    new_sample[sample] = 1
-                    sample = new_sample
+                    if self.use_ulaw:
+                        sample = sample.reshape(sample.shape[0], 1)
+                        new_sample = empty_sample.copy()
+                        new_sample[sample] = 1
+                        sample = new_sample
 
-                samples.append(sample)
-                labels.append(label)
-            samples = np.array(samples)
+                    samples.append(sample)
+                    labels.append(label)
+                samples = np.array(samples)
 
-            if not self.use_ulaw:
-                shape = samples.shape
-                samples = samples.reshape(shape[0], shape[1], 1)
-
-            if set == 'val':
-                self.val_queue.put([samples, np.array(labels)])
-            elif set == 'train':
-                self.train_queue.put([samples, np.array(labels)])
+                if not self.use_ulaw:
+                    shape = samples.shape
+                    samples = samples.reshape(shape[0], shape[1], 1)
+                try:
+                    if set == 'val':
+                        self.val_queue.put([samples, np.array(labels)], timeout=0.5)
+                    elif set == 'train':
+                        self.train_queue.put([samples, np.array(labels)], timeout=0.5)
+                except:
+                    pass
 
     def terminate_queue(self):
         self.train_enqueuer.terminate()

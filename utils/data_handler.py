@@ -31,43 +31,47 @@ class DataGenerator:
         self.sequence_length = sequence_length
         self.batch_size = batch_size
         self.use_ulaw = use_ulaw
-        self.data = h5py.File(get_dataset_file(dataset, use_ulaw), 'r')
         self.statistics = {}
-        for speaker in speakers:
-            times = self.data['statistics/'+speaker][:]
+        with h5py.File(get_dataset_file(dataset, use_ulaw), 'r') as data:
+            for speaker in speakers:
+                times = data['statistics/'+speaker][:]
 
-            id_times = list(zip(np.arange(len(times)), times))
-            id_times.sort(key=lambda x: x[1])
+                id_times = list(zip(np.arange(len(times)), times))
+                id_times.sort(key=lambda x: x[1])
 
-            total_time = np.sum(times)
-            train_ids = []
-            val_time = 0
-            val_ids = []
-            for id, time in id_times:
-                if time + val_time < total_time * val_set:
-                    val_ids.append((id, time))
-                    val_time += time
-                else:
-                    train_ids.append((id, time))
-            self.statistics[speaker] = {'train':train_ids, 'val':val_ids}
+                total_time = np.sum(times)
+                train_ids = []
+                val_time = 0
+                val_ids = []
+                for id, time in id_times:
+                    if time + val_time < total_time * val_set:
+                        val_ids.append((id, time))
+                        val_time += time
+                    else:
+                        train_ids.append((id, time))
+                self.statistics[speaker] = {'train':train_ids, 'val':val_ids}
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
 
-        self.sample_enqueuer = Process(target=self.sample_enqueuer)
-        self.sample_enqueuer.start()
+        self.train_enqueuer = Process(target=self.sample_enqueuer, args=('train',))
+        self.train_enqueuer.start()
 
-    def calculate_speaker_statistics(self, speakers, val_set=0.2):
+        self.val_enqueuer = Process(target=self.sample_enqueuer, args=('val',))
+        self.val_enqueuer.start()
+
+    def calculate_speaker_statistics(self, speakers):
         statistics = []
-        for speaker in speakers:
-            statistics.append([speaker, np.sum(self.data['statistics/'+speaker][:])])
+        with h5py.File(get_dataset_file(dataset, use_ulaw), 'r') as data:
+            for speaker in speakers:
+                statistics.append([speaker, np.sum(data['statistics/'+speaker][:])])
         return statistics
 
-    def sample_enqueuer(self):
+    def sample_enqueuer(self, set):
         empty_label = np.zeros(self.num_speakers)
         empty_sample = np.zeros((self.sequence_length, 256))
-        while True:
-            for set in ['train', 'val']:
+        with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+            while True:
                 samples = []
                 labels = []
                 for i in range(self.batch_size):
@@ -80,7 +84,7 @@ class DataGenerator:
                     sample_id = ids[temp_id]
 
                     start_id = np.random.randint(times[temp_id] - self.sequence_length)
-                    sample = self.data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length]
+                    sample = data['data/'+speaker][sample_id][start_id:start_id+self.sequence_length]
 
                     if self.use_ulaw:
                         sample = sample.reshape(sample.shape[0], 1)
@@ -102,7 +106,8 @@ class DataGenerator:
                     self.train_queue.put([samples, np.array(labels)])
 
     def terminate_queue(self):
-        self.sample_enqueuer.terminate()
+        self.train_enqueuer.terminate()
+        self.val_enqueuer.terminate()
 
     def train_batch_generator(self):
         while True:

@@ -110,7 +110,7 @@ if __name__ == '__main__':
     model.fit_generator(train_generator,
                         steps_per_epoch=steps_per_epoch,
                         validation_data=val_generator,
-                        validation_steps=steps_per_epoch,
+                        validation_steps=int(steps_per_epoch / 10),
                         epochs=num_epochs,
                         callbacks=[csv_logger, net_saver])
 

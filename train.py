@@ -54,6 +54,7 @@ if __name__ == '__main__':
     num_epochs = int(config['TRAINING']['num_epochs'])
     steps_per_epoch = int(config['TRAINING']['steps_per_epoch'])
     val_set = float(config['TRAINING']['val_set'])
+    queue_size = int(config['TRAINING']['queue_size'])
 
     utterance_length = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
     if dilation_base == filter_size:
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     optimizer = optimizers[used_optimizer]
 
 
-    data_generator = DataGenerator(dataset, utterance_length, batch_size, speakers, use_ulaw, val_set)
+    data_generator = DataGenerator(dataset, utterance_length, batch_size, speakers, queue_size, use_ulaw, val_set)
 
     train_generator = data_generator.train_batch_generator()
     train_generator.__next__()

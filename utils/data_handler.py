@@ -23,7 +23,7 @@ def get_speakers(dataset, speaker_list):
     return speakers
 
 class DataGenerator:
-    def __init__(self, dataset, sequence_length, batch_size, speakers,
+    def __init__(self, dataset, sequence_length, batch_size, speakers, queue_size,
                  use_ulaw=False, val_set=0.2):
         self.speakers = speakers
         self.num_speakers = len(speakers)
@@ -51,8 +51,8 @@ class DataGenerator:
                     train_ids.append((id, time))
             self.statistics[speaker] = {'train':train_ids, 'val':val_ids}
 
-        self.train_queue = Queue(50)
-        self.val_queue = Queue(50)
+        self.train_queue = Queue(queue_size)
+        self.val_queue = Queue(queue_size)
 
         self.sample_enqueuer = Process(target=self.sample_enqueuer)
         self.sample_enqueuer.start()

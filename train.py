@@ -102,7 +102,9 @@ if __name__ == '__main__':
     result_folder = create_result_dir(config_name)
 
     csv_logger = CSVLogger(result_folder + 'logs.csv')
-    net_saver = ModelCheckpoint(result_folder + 'best.h5', monitor='accuracy', save_best_only=True)
+    
+    net_saver_best = ModelCheckpoint(result_folder + 'best.h5', monitor='accuracy', save_best_only=True)
+    net_saver = ModelCheckpoint(result_folder + 'final.h5')
 
     model = Model(input, output)
     model.summary()
@@ -115,6 +117,4 @@ if __name__ == '__main__':
                         validation_data=val_generator,
                         validation_steps=int(steps_per_epoch / 10),
                         epochs=num_epochs,
-                        callbacks=[csv_logger, net_saver])
-
-    model.save(result_folder + 'final.h5')
+                        callbacks=[csv_logger, net_saver_best, net_saver])

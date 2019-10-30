@@ -1,6 +1,8 @@
 from utils.data_handler import DataGenerator, get_speakers
-from utils.path_handler import get_config_path, create_result_dir
-from model.WaveNet import *
+from utils.path_handler import create_result_dir
+from utils.config_handler import Config
+
+from model.WaveNet import build_WaveNet
 
 from keras.engine import Input, Model
 from keras.optimizers import Adadelta, Adam
@@ -8,14 +10,39 @@ from keras.metrics import categorical_accuracy
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 import argparse
-import configparser
 
 DEFAULT_CONFIG = 'default.cfg'
 
-def load_config(config_path):
-    config = configparser.ConfigParser()
-    config.read_file(open(config_path))
-    return config
+
+def store_required_variables(config, section):
+    dilation_base = config.get(section, 'dilation_base')
+    dilation_depth = config.get(section, 'dilation_depth')
+    filter_size = config.get(section, 'filter_size')
+
+    receptive_field = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
+    if dilation_base == filter_size:
+        receptive_field = filter_size ** dilation_depth
+    
+    config.set(section, 'receptive_field', receptive_field)
+
+
+def setup_optimizer(config):
+    adam_lr = config.get('TRAINING', 'adam', 'lr')
+    adam_beta_1 = config.get('TRAINING', 'adam', 'beta_1')
+    adam_beta_2 = config.get('TRAINING', 'adam', 'beta_2')
+    
+    optimizers = {'adadelta': Adadelta(),
+                  'adam': Adam(adam_lr, adam_beta_1, adam_beta_2)}
+
+    return optimizers
+
+
+def create_callbacks(config):
+    csv_logger = CSVLogger(config.result_dir + 'logs.csv')
+    net_saver_best = ModelCheckpoint(config.result_dir + 'best.h5', monitor='accuracy', save_best_only=True)
+    net_saver = ModelCheckpoint(config.result_dir + 'final.h5')
+    return [csv_logger, net_saver_best, net_saver]
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='training for speaker recognition')
@@ -23,98 +50,35 @@ if __name__ == '__main__':
                         help='The config to use for training')
 
     args = parser.parse_args()
+    config = Config(args.config_name)
 
-    config_name = args.config_name
-    config = load_config(get_config_path() + config_name)
+    used_model = config.get('GENERAL', 'model')
 
-    dataset = config['DATASET']['base']
-    speaker_list = config['DATASET']['speaker_list']
-    use_ulaw_str = config['DATASET']['use_ulaw']
-    use_ulaw = True
-    if use_ulaw_str == 'False':
-        use_ulaw = False
+    steps_per_epoch = config.get('TRAINING', 'steps_per_epoch')
+    num_epochs = config.get('TRAINING', 'num_epochs')
 
-    dilation_base = int(config['WAVENET']['dilation_base'])
-    dilation_depth = int(config['WAVENET']['dilation_depth'])
-    filter_size = int(config['WAVENET']['filter_size'])
-    num_stacks = int(config['WAVENET']['num_stacks'])
-    num_filters = int(config['WAVENET']['num_filters'])
-    used_output = config['WAVENET']['used_output']
-    used_resblock = config['WAVENET']['used_resblock']
-    used_optimizer = config['WAVENET']['used_optimizer']
+    store_required_variables(config, used_model)
 
-    dense_n_hidden = int(config['DENSE_OUT']['n_hidden'])
+    # Setup Data-Generator
+    data_generator = DataGenerator(config, used_model)
 
-    conv_v2_filter_size = int(config['CONV_OUT_V2']['filter_size'])
+    train_generator = data_generator.get_generator('train')
+    val_generator = data_generator.get_generator('val')
 
-    conv_v3_downsample_factor = int(config['CONV_OUT_V3']['downsample_factor'])
+    # Setup Optimizer
+    optimizer = setup_optimizer(config)[config.get('TRAINING', 'used_optimizer')]
 
-    adam_lr = float(config['ADAM']['adam_lr'])
-    adam_beta_1 = float(config['ADAM']['adam_beta_1'])
-    adam_beta_2 = float(config['ADAM']['adam_beta_2'])
-
-    batch_size = int(config['TRAINING']['batch_size'])
-    num_epochs = int(config['TRAINING']['num_epochs'])
-    steps_per_epoch = int(config['TRAINING']['steps_per_epoch'])
-    val_set = float(config['TRAINING']['val_set'])
-    queue_size = int(config['TRAINING']['queue_size'])
-
-    utterance_length = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
-    if dilation_base == filter_size:
-        utterance_length = filter_size ** dilation_depth
-
-    speakers = get_speakers(dataset, speaker_list)
-    num_output_bins = len(speakers)
-
-
-    optimizers = {'adadelta': Adadelta(),
-                  'adam': Adam(adam_lr, adam_beta_1, adam_beta_2)}
-    optimizer = optimizers[used_optimizer]
-
-
-    data_generator = DataGenerator(dataset, utterance_length, batch_size, speakers, queue_size, use_ulaw, val_set)
-
-    train_generator = data_generator.train_batch_generator()
-    train_generator.__next__()
-
-    val_generator = data_generator.val_batch_generator()
-    val_generator.__next__()
-
-    input = Input(shape=(utterance_length,1), name='input')
-    if use_ulaw:
-        input = Input(shape=(utterance_length,256), name='input')
-
-
-    resblocks = {'v1': residual_block_v1,
-                 'v2': residual_block_v2}
-    wavenet = wavenet_base(input, num_filters, num_stacks, dilation_base, dilation_depth, resblocks[used_resblock])
-
-    output = None
-    if used_output == 'dense':
-        output = final_output_dense(wavenet, dense_n_hidden, num_output_bins)
-    elif used_output == 'conv_v1':
-        output = final_output_conv_v1(wavenet, num_output_bins, utterance_length)
-    elif used_output == 'conv_v2':
-        output = final_output_conv_v2(wavenet, conv_v2_filter_size, num_output_bins, utterance_length)
-    elif used_output == 'conv_v3':
-        output = final_output_conv_v3(wavenet, filter_size, conv_v3_downsample_factor, num_output_bins, utterance_length)
-
-    result_folder = create_result_dir(config_name)
-
-    csv_logger = CSVLogger(result_folder + 'logs.csv')
-    
-    net_saver_best = ModelCheckpoint(result_folder + 'best.h5', monitor='accuracy', save_best_only=True)
-    net_saver = ModelCheckpoint(result_folder + 'final.h5')
-
-    model = Model(input, output)
+    # Setup Model
+    model = build_WaveNet(config, used_model)
     model.summary()
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
+    # Train Model
     model.fit_generator(train_generator,
                         steps_per_epoch=steps_per_epoch,
                         validation_data=val_generator,
                         validation_steps=int(steps_per_epoch / 10),
                         epochs=num_epochs,
-                        callbacks=[csv_logger, net_saver_best, net_saver])
+                        callbacks=create_callbacks(config))

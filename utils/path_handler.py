@@ -32,19 +32,19 @@ def get_dataset_file(dataset, use_ulaw=False):
         return get_dataset_path(dataset)+dataset+'_ulaw.h5'
     return get_dataset_path(dataset)+dataset+'_original.h5'
 
+def get_speaker_list_path(dataset):
+    return get_dataset_path(dataset) + 'speaker_lists/'
+
 def get_speaker_list_files(dataset):
-    return find_in_path(get_dataset_path(dataset) + 'speaker_lists/', '.txt')
+    return find_in_path(get_speaker_list_path(dataset), '.txt')
 
-def get_config_path():
-    return get_base_dir() + 'configs/'
+def get_config_path(filename=''):
+    return get_base_dir() + 'configs/' + filename
 
-def create_result_dir(name):
-    path = get_result_dir() + name[:-4] + '/'
-    try:
-        shutil.rmtree(path, ignore_errors=False, onerror=None)
-    except:
-        pass
-    os.makedirs(path, exist_ok=True)
-    config = get_config_path() + name
-    shutil.copyfile(config, path + name)
-    return path
+def create_result_dir(config):
+    dest = get_result_dir() + config.get('GENERAL', 'model') + '/' + config.file_name[:-4] + '/'
+    shutil.rmtree(dest, ignore_errors=True)
+    os.makedirs(dest, exist_ok=True)
+    config_path = get_config_path(config.file_name)
+    shutil.copyfile(config_path, dest + config.file_name)
+    return dest

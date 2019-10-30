@@ -2,6 +2,8 @@ import h5py
 import librosa
 import os
 import numpy as np
+import pickle
+
 from tqdm import tqdm
 
 def ulaw(x):
@@ -10,17 +12,22 @@ def ulaw(x):
     x = (x + 1.) / 2. * np.iinfo('uint8').max
     return x.astype('uint8')
 
-def create_h5_file(h5_path, audio_dict, dtype='float32', use_ulaw=False):
-    dt = h5py.special_dtype(vlen=np.dtype(dtype))
-    if use_ulaw:
-        dt = h5py.special_dtype(vlen=np.dtype('uint8'))
-    with h5py.File(h5_path, 'w') as f:
-        data = f.create_group('data')
-        statistics = f.create_group('statistics')
-        for speaker in audio_dict:
-            data.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=dt)
-            statistics.create_dataset(speaker, (len(audio_dict[speaker]),), dtype='long')
-
+def create_h5_file(h5_path, audio_dict, progress_file):
+    if not os.path.isfile(progress):
+        for use_ulaw, name in [[True, 'ulaw.h5'], [False, 'original.h5']]:
+            dt = h5py.special_dtype(vlen=np.dtype('float32'))
+            if use_ulaw:
+                dt = h5py.special_dtype(vlen=np.dtype('uint8'))
+            with h5py.File(h5_path + name, 'w') as f:
+                data = f.create_group('data')
+                audio_names = f.create_group('audio_names')
+                statistics = f.create_group('statistics')
+                for speaker in audio_dict:
+                    data.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=dt)
+                    audio_names.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=h5py.string_dtype(encoding='utf-8'))
+                    statistics.create_dataset(speaker, (len(audio_dict[speaker]),), dtype='long')
+    else:
+        audio_dict = pickle.load(open(progress_file, 'rb'))
     total = 0
     for speaker in audio_dict:
         total += len(audio_dict[speaker])
@@ -28,11 +35,13 @@ def create_h5_file(h5_path, audio_dict, dtype='float32', use_ulaw=False):
     pbar = tqdm(total=total, desc='audio extraction', ncols=100, ascii=True)
 
     for speaker in audio_dict:
-        for i, audio_file in enumerate(audio_dict[speaker]):
-            x, fs = librosa.core.load(audio_file)
-            if use_ulaw:
-                x = ulaw(x)
-            with h5py.File(h5_path, 'a') as f:
+        for i, [audio_file, name] in enumerate(audio_dict[speaker]):
+            x, _ = librosa.core.load(audio_file)
+            with h5py.File(h5_path + 'original.h5', 'a') as f:
+                f['data/'+speaker][i] = x
+                f['statistics/'+speaker][i] = len(x)
+            x = ulaw(x)
+            with h5py.File(h5_path + 'ulaw.h5', 'a') as f:
                 f['data/'+speaker][i] = x
                 f['statistics/'+speaker][i] = len(x)
             pbar.update(1)
@@ -55,7 +64,7 @@ def prepare_timit_dict(timit_path):
                         audio_files = []
                         for audio_file in os.listdir(timit_path+set+subset+'/'+speaker):
                             if required_extension in audio_file:
-                                audio_files.append(timit_path+set+subset+'/'+speaker+'/'+audio_file)
+                                audio_files.append([timit_path+set+subset+'/'+speaker+'/'+audio_file, audio_file])
                         timit_dict[speaker] = audio_files
     return timit_dict
 
@@ -67,15 +76,30 @@ def prepare_vox2_dict(vox2_path):
     if vox2_path[-1] != '/':
         vox2_path += '/'
 
-    for set in ['train/', 'test/']:
-        for speaker in tqdm(os.listdir(vox2_path+set+'aac/'), ncols=100, ascii=True, desc='vox2 read '+set):
+    for set in ['vox2_train/', 'vox2_test/']:
+        for speaker in tqdm(os.listdir(vox2_path+set), ncols=100, ascii=True, desc='vox2 read '+set):
             audio_files = []
-            for video in os.listdir(vox2_path+set+'aac/'+speaker):
-                for audio in os.listdir(vox2_path+set+'aac/'+speaker+'/'+video):
+            for video in os.listdir(vox2_path+set+speaker):
+                for audio in os.listdir(vox2_path+set+speaker+'/'+video):
                     if required_extension in audio:
-                        audio_files.append(vox2_path+set+'aac/'+speaker+'/'+video+'/'+audio)
+                        audio_files.append([vox2_path+set+speaker+'/'+video+'/'+audio, audio])
             vox2_dict[speaker] = audio_files
     return vox2_dict
 
-timit_dict = prepare_timit_dict('/data/Datasets/TIMIT/')
-create_h5_file('dataset/timit/timit_ulaw.h5', timit_dict, 'uint8', use_ulaw=True)
+bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'], 
+         [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
+
+for [f, base, name] in bases:
+    dest = base + name
+    full_struct = base + 'full_structure.p'
+    progress = base + 'progress.p'
+
+    dic = None
+
+    if not os.path.isfile(full_struct):
+        dic = f(dataset)
+        pickle.dump(dic, open(full_struct, 'wb'))
+    else:
+        dic = pickle.load(open(full_struct, 'rb'))
+
+    create_h5_file(dest, dic, progress)

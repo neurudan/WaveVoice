@@ -9,7 +9,10 @@ from keras.optimizers import Adadelta, Adam
 from keras.metrics import categorical_accuracy
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
+from wandb.keras import WandbCallback
+
 import argparse
+import wandb
 
 DEFAULT_CONFIG = 'default.cfg'
 
@@ -41,7 +44,7 @@ def create_callbacks(config):
     csv_logger = CSVLogger(config.result_dir + 'logs.csv')
     net_saver_best = ModelCheckpoint(config.result_dir + 'best.h5', monitor='accuracy', save_best_only=True)
     net_saver = ModelCheckpoint(config.result_dir + 'final.h5')
-    return [csv_logger, net_saver_best, net_saver]
+    return [csv_logger, net_saver_best, net_saver, WandbCallback()]
 
 
 if __name__ == '__main__':
@@ -53,6 +56,9 @@ if __name__ == '__main__':
     config = Config(args.config_name)
 
     used_model = config.get('GENERAL', 'model')
+
+    dic = config.convert_to_dict(used_model)
+    wandb.init(config=dic)
 
     steps_per_epoch = config.get('TRAINING', 'steps_per_epoch')
     num_epochs = config.get('TRAINING', 'num_epochs')

@@ -13,6 +13,22 @@ class Config():
         self.result_dir = create_result_dir(self)
         self.store = {}
 
+    def convert_to_dict(self, section):
+        dic = {'GENERAL': {},
+               'TRAINING': {},
+               section: {}}
+
+        for option in self.config.options('GENERAL'):
+            dic['GENERAL'][option] = self.get('GENERAL', option)
+
+        for option in self.config.options('TRAINING'):
+            dic['TRAINING'][option] = self.get('TRAINING', option)
+
+        for option in self.config.options(section):
+            dic[section][option] = self.get(section, option)
+            
+        return dic
+
     def get(self, topic, key, subkey=None, store=False):
         if store:
             return self.store[topic][key]

@@ -34,6 +34,8 @@ def create_h5_file(h5_path, audio_dict, progress_file):
 
     pbar = tqdm(total=total, desc='audio extraction', ncols=100, ascii=True)
 
+    progress_dict = audio_dict.copy()
+
     for speaker in audio_dict:
         for i, [audio_file, name] in enumerate(audio_dict[speaker]):
             x, _ = librosa.core.load(audio_file)
@@ -45,6 +47,9 @@ def create_h5_file(h5_path, audio_dict, progress_file):
                 f['data/'+speaker][i] = x
                 f['statistics/'+speaker][i] = len(x)
             pbar.update(1)
+        progress_dict.pop(speaker, None)
+        pickle.dump(progress_dict, open(progress_file, 'wb'))
+
     pbar.close()
 
 def prepare_timit_dict(timit_path):
@@ -97,7 +102,7 @@ for [f, base, name] in bases:
     dic = None
 
     if not os.path.isfile(full_struct):
-        dic = f(dataset)
+        dic = f(base)
         pickle.dump(dic, open(full_struct, 'wb'))
     else:
         dic = pickle.load(open(full_struct, 'rb'))

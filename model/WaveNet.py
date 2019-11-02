@@ -3,30 +3,28 @@ from keras.engine import Model
 from model.WaveNet_utils import RESIDUAL_BLOCKS, CONNECTION_BLOCKS, OUTPUT_BLOCKS, get_input
 
 
-def build_WaveNet(config, section):
-    dilation_depth = config.get(section, 'dilation_depth')
-    filter_size = config.get(section, 'filter_size')
-    num_filters = config.get(section, 'num_filters')
+def build_WaveNet(config):
+    dilation_depth = config.get('MODEL.dilation_depth')
+    filter_size = config.get('MODEL.filter_size')
+    num_filters = config.get('MODEL.num_filters')
 
-    residual_block = RESIDUAL_BLOCKS[config.get(section, 'used_residual_block')]
-    connection_block = CONNECTION_BLOCKS[config.get(section, 'used_connection_block')]
-    output_block = OUTPUT_BLOCKS[config.get(section, 'used_output_block')]
+    residual_block = RESIDUAL_BLOCKS[config.get('MODEL.residual_block')]
+    connection_block = CONNECTION_BLOCKS[config.get('MODEL.connection_block')]
+    output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
 
 
-    sample_input = get_input(config, section)
-    full_input = sample_input
-    if type(full_input) is list:
-        sample_input = full_input[0]
-        speaker_input = full_input[1]
+    input = get_input(config)
 
-    residual_connection = Conv1D(num_filters, filter_size, padding='same', name='Initial_Conv1D')(sample_input)
+    residual_connection = Conv1D(num_filters, filter_size, padding='same', name='Initial_Conv1D')(input[0])
 
     skip_connections = []
     for dilation_rate in range(0, dilation_depth + 1):
-        residual_connection, skip_connection = residual_block(residual_connection, dilation_rate, config, section)
+        res_input = [residual_connection]
+        res_input.extend(input[1:])
+        residual_connection, skip_connection = residual_block(res_input, dilation_rate, config)
         skip_connections.append(skip_connection)
         
-    output = connection_block(residual_connection, skip_connections, config, section)
-    output = output_block(output, config, section)
+    output = connection_block(residual_connection, skip_connections, config)
+    output = output_block(output, config)
 
-    return Model(full_input, output)
+    return Model(input, output)

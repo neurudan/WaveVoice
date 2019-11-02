@@ -1,81 +1,74 @@
-from utils.data_handler import DataGenerator, get_speakers
-from utils.path_handler import create_result_dir
+from utils.data_handler import DataGenerator
+from utils.path_handler import get_config_path
 from utils.config_handler import Config
 
 from model.WaveNet import build_WaveNet
 
 from keras.engine import Input, Model
-from keras.optimizers import Adadelta, Adam
+from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 from keras.metrics import categorical_accuracy
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from wandb.keras import WandbCallback
 
-import argparse
 import wandb
+import json
+import os
 
-DEFAULT_CONFIG = 'default.cfg'
+os.environ['WANDB_ENTITY'] = "bratwolf"
+os.environ['WANDB_PROJECT'] = "SV"
 
 
-def store_required_variables(config, section):
-    dilation_base = config.get(section, 'dilation_base')
-    dilation_depth = config.get(section, 'dilation_depth')
-    filter_size = config.get(section, 'filter_size')
+def store_required_variables(config):
+    dilation_base = config.get('MODEL.dilation_base')
+    dilation_depth = config.get('MODEL.dilation_depth')
+    filter_size = config.get('MODEL.filter_size')
 
     receptive_field = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
     if dilation_base == filter_size:
         receptive_field = filter_size ** dilation_depth
     
-    config.set(section, 'receptive_field', receptive_field)
+    config.set('MODEL.receptive_field', receptive_field)
 
 
 def setup_optimizer(config):
-    adam_lr = config.get('TRAINING', 'adam', 'lr')
-    adam_beta_1 = config.get('TRAINING', 'adam', 'beta_1')
-    adam_beta_2 = config.get('TRAINING', 'adam', 'beta_2')
-    
-    optimizers = {'adadelta': Adadelta(),
-                  'adam': Adam(adam_lr, adam_beta_1, adam_beta_2)}
+    lr = config.get('OPTIMIZER.lr')
+    optimizers = {
+        'sgd': SGD(learning_rate=lr),
+        'rmsprop': RMSprop(learning_rate=lr),
+        'adagrad': Adagrad(learning_rate=lr),
+        'adadelta': Adadelta(learning_rate=lr),
+        'adam': Adam(learning_rate=lr),
+        'adamax': Adamax(learning_rate=lr),
+        'nadam': Nadam(learning_rate=lr)
+    }
+    return optimizers[config.get('OPTIMIZER.type')]
 
-    return optimizers
+def train():
+    config = Config()
 
+    steps_per_epoch = config.get('TRAINING.steps_per_epoch')
+    num_epochs = config.get('TRAINING.num_epochs')
 
-def create_callbacks(config):
-    csv_logger = CSVLogger(config.result_dir + 'logs.csv')
-    net_saver_best = ModelCheckpoint(config.result_dir + 'best.h5', monitor='accuracy', save_best_only=True)
-    net_saver = ModelCheckpoint(config.result_dir + 'final.h5')
-    return [csv_logger, net_saver_best, net_saver, WandbCallback()]
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='training for speaker recognition')
-    parser.add_argument('-c', dest='config_name', default=DEFAULT_CONFIG,
-                        help='The config to use for training')
-
-    args = parser.parse_args()
-    config = Config(args.config_name)
-
-    used_model = config.get('GENERAL', 'model')
-
-    dic = config.convert_to_dict(used_model)
-    wandb.init(config=dic)
-
-    steps_per_epoch = config.get('TRAINING', 'steps_per_epoch')
-    num_epochs = config.get('TRAINING', 'num_epochs')
-
-    store_required_variables(config, used_model)
+    store_required_variables(config)
 
     # Setup Data-Generator
-    data_generator = DataGenerator(config, used_model)
+    data_generator = DataGenerator(config)
 
     train_generator = data_generator.get_generator('train')
     val_generator = data_generator.get_generator('val')
 
     # Setup Optimizer
-    optimizer = setup_optimizer(config)[config.get('TRAINING', 'used_optimizer')]
+    optimizer = setup_optimizer(config)
+
+    # Setup Callback
+    x, y = val_generator.__next__()
+    print(x.shape)
+    print(y.shape)
+    wandb_cb = WandbCallback(training_data=(x, y), log_weights=True, log_gradients=True)
 
     # Setup Model
-    model = build_WaveNet(config, used_model)
+    model = build_WaveNet(config)
     model.summary()
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
@@ -87,4 +80,11 @@ if __name__ == '__main__':
                         validation_data=val_generator,
                         validation_steps=int(steps_per_epoch / 10),
                         epochs=num_epochs,
-                        callbacks=create_callbacks(config))
+                        callbacks=[wandb_cb])
+
+
+if __name__ == '__main__':
+    path = get_config_path('sweep.json')
+    sweep_config = json.load(open(path, 'r'))
+    sweep_id = wandb.sweep(sweep_config)
+    wandb.agent(sweep_id, function=train)

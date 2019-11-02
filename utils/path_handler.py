@@ -18,9 +18,6 @@ def find_in_path(path, extension):
             files[file] = path + file
     return files
 
-def get_result_dir():
-    return get_base_dir() + 'results/'
-
 def get_dataset_base_path():
     return get_base_dir() + 'dataset/'
 
@@ -40,11 +37,3 @@ def get_speaker_list_files(dataset):
 
 def get_config_path(filename=''):
     return get_base_dir() + 'configs/' + filename
-
-def create_result_dir(config):
-    dest = get_result_dir() + config.get('GENERAL', 'model') + '/' + config.file_name[:-4] + '/'
-    shutil.rmtree(dest, ignore_errors=True)
-    os.makedirs(dest, exist_ok=True)
-    config_path = get_config_path(config.file_name)
-    shutil.copyfile(config_path, dest + config.file_name)
-    return dest

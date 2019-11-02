@@ -63,18 +63,17 @@ class CausalConv1D(Conv1D):
 # Create Model Input
 # ==================
 
-def get_input(config, section):
-    receptive_field = config.get(section, 'receptive_field')
-    use_ulaw = config.get(section, 'dataset', 'use_ulaw')
+def get_input(config):
+    receptive_field = config.get('MODEL.receptive_field')
+    use_ulaw = config.get('DATASET.use_ulaw')
 
-    input = Input(shape=(receptive_field,), name='Input')
+    input = [Input(shape=(receptive_field,), name='Input')]
     if use_ulaw:
-        input = Input(shape=(receptive_field, 256), name='U-Law_Input')
+        input = [Input(shape=(receptive_field, 256), name='U-Law_Input')]
     
-    if section == 'WAVENET_MSSG':
-        num_speakers = config.get(section, 'num_speakers')
-        input = [input, Input(shape=(num_speakers,), name='Speaker_Input')]
-        config.set(section, 'input', input, store=True)
+    if config.get('DATASET.condition') == 'speaker':
+        num_speakers = config.get('DATASET.num_speakers')
+        input.append(Input(shape=(num_speakers,), name='Speaker_Input'))
     return input
 
 
@@ -82,26 +81,25 @@ def get_input(config, section):
 # Residual Blocks
 # ===============
 
-def resblock_cond(input, dilation_rate, config, section):
-    dilation_base = config.get(section, 'dilation_base')
-    filter_size = config.get(section, 'filter_size')
-    num_filters = config.get(section, 'num_filters')
-    causal = config.get(section, 'causal')
-    receptive_field = config.get(section, 'receptive_field')
+def resblock_cond(input, dilation_rate, config):
+    dilation_base = config.get('MODEL.dilation_base')
+    filter_size = config.get('MODEL.filter_size')
+    num_filters = config.get('MODEL.num_filters')
+    causal = config.get('MODEL.causal')
+    receptive_field = config.get('MODEL.receptive_field')
 
     suffix = '-dilation%d'%dilation_rate
 
     filter_conv_output = CausalConv1D(num_filters, filter_size,
                                  dilation_rate=dilation_base ** dilation_rate, causal=causal,
-                                 padding='same', name='Filter_Conv1d'+suffix)(input)
+                                 padding='same', name='Filter_Conv1d'+suffix)(input[0])
     
     gate_conv_output = CausalConv1D(num_filters, filter_size,
                                dilation_rate=dilation_base ** dilation_rate, causal=causal,
-                               padding='same', name='Gate_Conv1d'+suffix)(input)
+                               padding='same', name='Gate_Conv1d'+suffix)(input[0])
 
-    speaker_input = config.get(section, 'input', store=True)[1]
-    filter_condition = Dense(num_filters, name='Filter_Condition'+suffix)(speaker_input)
-    gate_condition = Dense(num_filters, name='Gate_Condition'+suffix)(speaker_input)
+    filter_condition = Dense(num_filters, name='Filter_Condition'+suffix)(input[1])
+    gate_condition = Dense(num_filters, name='Gate_Condition'+suffix)(input[1])
 
     broadcasted_filter_condition = RepeatVector(receptive_field, name='Broadcast_Filter_Condition'+suffix)(filter_condition)
     broadcasted_gate_condition = RepeatVector(receptive_field, name='Broadcast_Gate_Condition'+suffix)(gate_condition)
@@ -116,33 +114,33 @@ def resblock_cond(input, dilation_rate, config, section):
 
     skip_output = Conv1D(num_filters, filter_size, padding='same', name='Skip_Connection'+suffix)(gau_output)
     residual_conv_output = Conv1D(num_filters, filter_size, padding='same', name='Residual_Conv1D'+suffix)(gau_output)
-    residual_output = Add(name='Residual_Connection'+suffix)([input, residual_conv_output])
+    residual_output = Add(name='Residual_Connection'+suffix)([input[0], residual_conv_output])
 
     return residual_output, skip_output
 
 
-def resblock_orig(input, dilation_rate, config, section):
-    dilation_base = config.get(section, 'dilation_base')
-    filter_size = config.get(section, 'filter_size')
-    num_filters = config.get(section, 'num_filters')
-    causal = config.get(section, 'causal')
+def resblock_orig(input, dilation_rate, config):
+    dilation_base = config.get('MODEL.dilation_base')
+    filter_size = config.get('MODEL.filter_size')
+    num_filters = config.get('MODEL.num_filters')
+    causal = config.get('MODEL.causal')
 
     suffix = '-dilation%d'%dilation_rate
 
     filter_output = CausalConv1D(num_filters, filter_size,
                                  dilation_rate=dilation_base ** dilation_rate, activation='tanh', causal=causal,
-                                 padding='same', name='Filter'+suffix)(input)
+                                 padding='same', name='Filter'+suffix)(input[0])
 
     gate_output = CausalConv1D(num_filters, filter_size,
                                dilation_rate=dilation_base ** dilation_rate, activation='sigmoid', causal=causal,
-                               padding='same', name='Gate'+suffix)(input)
+                               padding='same', name='Gate'+suffix)(input[0])
 
 
     gau_output = Multiply(name='Gated_Activation_Unit'+suffix)([filter_output, gate_output])
 
     skip_output = Conv1D(num_filters, filter_size, padding='same', name='Skip_Connection'+suffix)(gau_output)
     residual_output = Conv1D(num_filters, filter_size, padding='same', name='Residual_Conv1D'+suffix)(gau_output)
-    residual_output = Add(name='Residual_Connection'+suffix)([input, residual_output])
+    residual_output = Add(name='Residual_Connection'+suffix)([input[0], residual_output])
 
     return residual_output, skip_output
 
@@ -151,18 +149,18 @@ def resblock_orig(input, dilation_rate, config, section):
 # Connection Blocks
 # =================
 
-def use_skip_connections(residual_connection, skip_connections, config, section):
+def use_skip_connections(residual_connection, skip_connections, config):
     output = Add(name='Add_Skip_Connections')(skip_connections)
     output = Activation('relu')(output)
     return output
 
 
-def use_residual_connections(residual_connection, skip_connections, config, section):
+def use_residual_connections(residual_connection, skip_connections, config):
     output = Activation('relu')(residual_connection)
     return output
 
 
-def use_both_connections(residual_connection, skip_connections, config, section):
+def use_both_connections(residual_connection, skip_connections, config):
     skip_connections.append(residual_connection)
     output = Add(name='Add_Skip_&_Residual_Connections')(skip_connections)
     output = Activation('relu')(output)
@@ -173,9 +171,9 @@ def use_both_connections(residual_connection, skip_connections, config, section)
 # Output Blocks
 # =============
 
-def output_dense(input, config, section):
-    num_filters = config.get(section, 'output_dense', 'num_filters')
-    output_bins = config.get(section, 'output_bins')
+def output_dense(input, config):
+    num_filters = config.get('OUTPUT_DENSE.num_filters')
+    output_bins = config.get('DATASET.output_bins')
 
     output = input
     for i, num_filter in enumerate(num_filters):
@@ -185,11 +183,11 @@ def output_dense(input, config, section):
     return output
 
 
-def output_conv_orig(input, config, section):
-    filter_size = config.get(section, 'output_conv_orig', 'filter_size')
-    output_bins = config.get(section, 'output_bins')
-    receptive_field = config.get(section, 'receptive_field')
-    select_middle = config.get(section, 'output_conv_orig', 'select_middle')
+def output_conv_orig(input, config):
+    filter_size = config.get('OUTPUT_CONV_ORIG.filter_size')
+    select_middle = config.get('OUTPUT_CONV_ORIG.select_middle')
+    output_bins = config.get('DATASET.output_bins')
+    receptive_field = config.get('MODEL.receptive_field')
 
     bin_id = -1
     if select_middle:
@@ -197,7 +195,7 @@ def output_conv_orig(input, config, section):
 
 
     output = Conv1D(output_bins, filter_size[0],
-                    activation='relu', padding='same', name='Embeddings')(input)
+                    activation='relu', padding='same', name='Embeddings')(input[0])
 
     output = Conv1D(output_bins, filter_size[1],
                     padding='same', name='Conv1D_Output')(output)
@@ -208,9 +206,9 @@ def output_conv_orig(input, config, section):
     output = Activation('softmax', name='Output')(output)
     return output
 
-def output_conv_down(input, config, section):
-    filter_sizes = config.get(section, 'output_conv_down', 'filter_size')
-    output_bins = config.get(section, 'output_bins')
+def output_conv_down(input, config):
+    filter_sizes = config.get('OUTPUT_CONV_DOWN.filter_size')
+    output_bins = config.get('DATASET.output_bins')
 
     output = input
     for i, filter_size in enumerate(filter_sizes):
@@ -221,10 +219,10 @@ def output_conv_down(input, config, section):
     return output
 
 
-def output_pool_down(input, config, section):
-    downsample_factors = config.get(section, 'output_conv_down', 'downsample_factor')
-    filter_sizes = config.get(section, 'output_conv_down', 'filter_size')
-    output_bins = config.get(section, 'output_bins')
+def output_pool_down(input, config):
+    downsample_factors = config.get('OUTPUT_POOL_DOWN.downsample_factor')
+    filter_sizes = config.get('OUTPUT_POOL_DOWN.filter_size')
+    output_bins = config.get('DATASET.output_bins')
 
     output = input
     for i, [filter_size, downsample_factor] in enumerate(zip(filter_sizes, downsample_factors)):

@@ -1,0 +1,5 @@
+[default]
+entity = bratwolf
+project = sv
+base_url = https://api.wandb.ai
+

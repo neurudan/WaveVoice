@@ -1,63 +1,36 @@
-from utils.path_handler import get_config_path, create_result_dir
-
-import configparser
+import wandb
 import json
 
+from utils.path_handler import get_config_path
 
 class Config():
-    def __init__(self, file_name):
-        path = get_config_path(file_name)
-        self.file_name = file_name
-        self.config = configparser.ConfigParser()
-        self.config.read_file(open(path))
-        self.result_dir = create_result_dir(self)
+    def __init__(self):
+        path = get_config_path('default.json')
+        dic = json.load(open(path, 'r'))
+        wandb.init(config=dic)
         self.store = {}
 
-    def convert_to_dict(self, section):
-        dic = {'GENERAL': {},
-               'TRAINING': {},
-               section: {}}
-
-        for option in self.config.options('GENERAL'):
-            dic['GENERAL'][option] = self.get('GENERAL', option)
-
-        for option in self.config.options('TRAINING'):
-            dic['TRAINING'][option] = self.get('TRAINING', option)
-
-        for option in self.config.options(section):
-            dic[section][option] = self.get(section, option)
-            
-        return dic
-
-    def get(self, topic, key, subkey=None, store=False):
-        if store:
-            return self.store[topic][key]
-        else:
-            res = json.loads(self.config.get(topic, key))
-            if subkey is not None:
-                if type(subkey) is list:
-                    for k in subkey:
-                        res = res[k]
-                else:
-                    res = res[subkey]
-            return res
+    def get(self, key):
+        try:
+            val = self.store
+            for t in key.split('.'):
+                val = val[t]
+            return val
+        except:
+            pass
+        val = wandb.config.get(key)
+        if val is None:
+            keys = key.split('.')
+            val = wandb.config.get(keys[0])
+            for key in keys[1:]:
+                val = val[key]
+        return val
         
-    def set(self, topic, key, val, store=False):
-        if store:
-            if topic not in self.store:
-                self.store[topic] = {}
-            self.store[topic][key] = val
-        else:
-            val = json.dumps(val)
-            try:
-                self.config.set(topic, key, val)
-            except configparser.NoSectionError:
-                self.config.add_section(topic)
-                self.config.set(topic, key, val)
-
-
-    def get_result_dir(self):
-        return self.result_dir
-
-    def get_file_name(self):
-        return self.file_name
+    def set(self, key, val):
+        dic = self.store
+        keys = key.split('.')
+        for key in keys[:-1]:
+            if key not in dic:
+                dic[key] = {}
+            dic = dic[key]
+        dic[keys[-1]] = val

@@ -113,7 +113,9 @@ class DataGenerator:
                     samples.append(sample)
                     speaker_samples.append(speaker_sample)
                     timesteps.append(next_timestep)
-
+                samples = np.array(samples)
+                if not self.use_ulaw:
+                    samples = samples.reshape(samples.shape[0], samples.shape[1], 1)
                 try:
                     if set == 'val':
                         self.val_queue.put([np.array(samples), np.array(timesteps), np.array(speaker_samples)], timeout=0.5)

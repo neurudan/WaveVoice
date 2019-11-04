@@ -67,7 +67,7 @@ def get_input(config):
     receptive_field = config.get('MODEL.receptive_field')
     use_ulaw = config.get('DATASET.use_ulaw')
 
-    input = [Input(shape=(receptive_field,), name='Input')]
+    input = [Input(shape=(receptive_field, 1), name='Input')]
     if use_ulaw:
         input = [Input(shape=(receptive_field, 256), name='U-Law_Input')]
     
@@ -195,7 +195,7 @@ def output_conv_orig(input, config):
 
 
     output = Conv1D(output_bins, filter_size[0],
-                    activation='relu', padding='same', name='Embeddings')(input[0])
+                    activation='relu', padding='same', name='Embeddings')(input)
 
     output = Conv1D(output_bins, filter_size[1],
                     padding='same', name='Conv1D_Output')(output)

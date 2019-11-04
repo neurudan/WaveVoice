@@ -14,9 +14,7 @@ from wandb.keras import WandbCallback
 import wandb
 import json
 import os
-
-os.environ['WANDB_ENTITY'] = "bratwolf"
-os.environ['WANDB_PROJECT'] = "SV"
+import argparse
 
 
 def store_required_variables(config):
@@ -44,8 +42,8 @@ def setup_optimizer(config):
     }
     return optimizers[config.get('OPTIMIZER.type')]
 
-def train():
-    config = Config()
+def train(config_name=None):
+    config = Config(config_name)
 
     steps_per_epoch = config.get('TRAINING.steps_per_epoch')
     num_epochs = config.get('TRAINING.num_epochs')
@@ -54,7 +52,7 @@ def train():
 
     # Setup Data-Generator
     data_generator = DataGenerator(config)
-
+    
     train_generator = data_generator.get_generator('train')
     val_generator = data_generator.get_generator('val')
 
@@ -62,9 +60,7 @@ def train():
     optimizer = setup_optimizer(config)
 
     # Setup Callback
-    x, y = val_generator.__next__()
-    print(x.shape)
-    print(y.shape)
+    (x, y) = val_generator.__next__()
     wandb_cb = WandbCallback(training_data=(x, y), log_weights=True, log_gradients=True)
 
     # Setup Model
@@ -84,7 +80,26 @@ def train():
 
 
 if __name__ == '__main__':
-    path = get_config_path('sweep.json')
-    sweep_config = json.load(open(path, 'r'))
-    sweep_id = wandb.sweep(sweep_config)
-    wandb.agent(sweep_id, function=train)
+    parser = argparse.ArgumentParser(description='Training for the WaveVoice Project')
+    parser.add_argument('--project', '-p', dest='project', default='SV',
+                        help='The name of the project on wandb. (define first using "wandb init")')
+    parser.add_argument('--sweep', '-s', dest='sweep', action='store_true',
+                        help='If passed, uses the wandb sweep function for gridsearch.')
+    parser.add_argument('--config', '-c', dest='config', default='default.cfg',
+                        help='The config file to use - is only used, if --sweep has not been passed. (default is "default.json")')
+    parser.add_argument('--sweep-config', '-sc', dest='sweep_config', default='sweep_default.json',
+                        help='The sweep config file to use - is only used, if --sweep has been passed aswell. (default is "sweep_default.json")')
+
+    args = parser.parse_args()
+    
+    os.environ['WANDB_ENTITY'] = 'bratwolf'
+    os.environ['WANDB_AGENT_REPORT_INTERVAL'] = '0'
+    os.environ['WANDB_PROJECT'] = args.project
+
+    if args.sweep:
+        path = get_config_path(args.sweep_config)
+        sweep_config = json.load(open(path, 'r'))
+        sweep_id = wandb.sweep(sweep_config)
+        wandb.agent(sweep_id, function=train)
+    else:
+        train(config_name=args.config)

@@ -4,10 +4,14 @@ import json
 from utils.path_handler import get_config_path
 
 class Config():
-    def __init__(self):
-        path = get_config_path('default.json')
+    def __init__(self, path):
+        wandb.init()
+        if path is None:
+            path = get_config_path(wandb.config.get('config_name'))
+        else:
+            path = get_config_path(path)
         dic = json.load(open(path, 'r'))
-        wandb.init(config=dic)
+        wandb.config.update(dic)
         self.store = {}
 
     def get(self, key):
@@ -18,7 +22,7 @@ class Config():
             return val
         except:
             pass
-        val = wandb.config.get(key)
+        val = wandb.config.get('SWEEP.' + key)
         if val is None:
             keys = key.split('.')
             val = wandb.config.get(keys[0])

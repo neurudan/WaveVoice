@@ -1,5 +1,10 @@
 dataset/*/*.h5
-results/*
-configs/*
-!configs/default.cfg
+
 .vscode
+wandb/*
+
+*__pycache__*
+
+configs/*
+!configs/default.json
+!configs/sweep_default.json

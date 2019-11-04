@@ -41,7 +41,7 @@
     },
 
     "OUTPUT_CONV_ORIG": {
-        "select_middle":    false,
+        "select_middle":    true,
         "filter_size":      [1, 1]
     },
 

@@ -85,7 +85,7 @@ if __name__ == '__main__':
                         help='The name of the project on wandb. (define first using "wandb init")')
     parser.add_argument('--sweep', '-s', dest='sweep', action='store_true',
                         help='If passed, uses the wandb sweep function for gridsearch.')
-    parser.add_argument('--config', '-c', dest='config', default='default.cfg',
+    parser.add_argument('--config', '-c', dest='config', default='default.json',
                         help='The config file to use - is only used, if --sweep has not been passed. (default is "default.json")')
     parser.add_argument('--sweep-config', '-sc', dest='sweep_config', default='sweep_default.json',
                         help='The sweep config file to use - is only used, if --sweep has been passed aswell. (default is "sweep_default.json")')

@@ -1,7 +1,7 @@
 dataset/*/*.h5
 
 .vscode
-wandb/*
+wandb
 
 *__pycache__*
 

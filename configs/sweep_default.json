@@ -11,7 +11,7 @@
     "parameters": {
         "config_name":          {"value": "default.json"},
         
-        "SWEEP.MODEL.num_filters": {
+        "01.SWEEP.MODEL.num_filters": {
             "values":           [32, 64, 128, 256]
         }
     }

@@ -114,10 +114,10 @@ class DataGenerator:
                 samples.append(self.__draw_from_speaker__(speaker, receptive_field, dset, data))
 
         samples, timesteps, speaker_samples = zip(*samples)
-        samples = np.array(list(samples))
+        samples = np.array(list(samples), dtype='float32')
         if not self.use_ulaw:
             samples = samples.reshape(samples.shape[0], samples.shape[1], 1)
-        return samples, np.array(list(timesteps)), np.array(list(speaker_samples))
+        return samples, np.array(list(timesteps), dtype='float32'), np.array(list(speaker_samples), dtype='float32')
 
     def sample_enqueuer(self):
         batch_size = self.config.get('DATASET.batch_size')

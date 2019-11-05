@@ -1,4 +1,4 @@
-from keras.layers import Conv1D, Dense, Activation, Lambda, AveragePooling1D, Add, Multiply, RepeatVector, Flatten
+from keras.layers import Conv1D, Dense, Activation, Lambda, AveragePooling1D, Add, Multiply, RepeatVector, Flatten, Layer
 from keras.engine import Input
 from keras.utils.conv_utils import conv_output_length
 
@@ -10,6 +10,7 @@ import tensorflow as tf
 #
 # (original: https://github.com/basveeling/wavenet/blob/master/wavenet_utils.py)
 # ==============================================================================
+
 
 def asymmetric_temporal_padding(x, left_pad=1, right_pad=1):
     '''Pad the middle dimension of a 3D tensor
@@ -198,12 +199,10 @@ def output_conv_orig(input, config):
                     activation='relu', padding='same', name='Embeddings')(input)
 
     output = Conv1D(output_bins, filter_size[1],
-                    padding='same', name='Conv1D_Output')(output)
+                    activation='softmax', padding='same', name='Conv1D_Output')(output)
 
     output = Lambda(lambda x: x[:,bin_id,:],
                     output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)
-
-    output = Activation('softmax', name='Output')(output)
     return output
 
 def output_conv_down(input, config):

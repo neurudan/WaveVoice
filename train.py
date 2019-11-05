@@ -62,13 +62,13 @@ def store_required_variables(config):
 def setup_optimizer(config):
     lr = config.get('OPTIMIZER.lr')
     optimizers = {
-        'sgd': SGD(learning_rate=lr),
-        'rmsprop': RMSprop(learning_rate=lr),
-        'adagrad': Adagrad(learning_rate=lr),
-        'adadelta': Adadelta(learning_rate=lr),
-        'adam': Adam(learning_rate=lr),
-        'adamax': Adamax(learning_rate=lr),
-        'nadam': Nadam(learning_rate=lr)
+        'sgd': SGD(learning_rate=lr, clipnorm=1.),
+        'rmsprop': RMSprop(learning_rate=lr, clipnorm=1.),
+        'adagrad': Adagrad(learning_rate=lr, clipnorm=1.),
+        'adadelta': Adadelta(learning_rate=lr, clipnorm=1.),
+        'adam': Adam(learning_rate=lr, clipnorm=1.),
+        'adamax': Adamax(learning_rate=lr, clipnorm=1.),
+        'nadam': Nadam(learning_rate=lr, clipnorm=1.)
     }
     return optimizers[config.get('OPTIMIZER.type')]
 

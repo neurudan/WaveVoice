@@ -8,7 +8,7 @@
         
         
         "01.SWEEP.TRAINING.num_epochs": {
-            "value": 300
+            "value": 150
         },
         "01.SWEEP.TRAINING.steps_per_epoch": {
             "value": 1

@@ -28,7 +28,10 @@ def update_run_name(config):
                 if p is None:
                     name += part
                 else:
-                    name += str(p)
+                    if type(p) is int:
+                        name += '%03d'%p
+                    else:
+                        name += str(p)
             except:
                 name += part
         run_name = name

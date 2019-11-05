@@ -40,7 +40,7 @@ class DataGenerator:
         self.speakers = get_speaker_list(config)
         self.num_speakers = len(self.speakers)
 
-        if self.label == 'timestep':
+        if self.label == 'timesteps':
             config.set('DATASET.output_bins', 256)
         elif self.label == 'speaker':
             config.set('DATASET.output_bins', self.num_speakers)

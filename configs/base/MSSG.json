@@ -23,7 +23,7 @@
         "speaker_list":     "timit_speakers_100_50w_50m_not_reynolds.txt",
 
         "condition":        "speaker",
-        "label":            "timestep",
+        "label":            "timesteps",
 
         "type":             "real",
         "use_ulaw":         true,

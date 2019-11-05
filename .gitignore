@@ -4,7 +4,3 @@ dataset/*/*.h5
 wandb
 
 *__pycache__*
-
-configs/*
-!configs/default.json
-!configs/sweep_default.json

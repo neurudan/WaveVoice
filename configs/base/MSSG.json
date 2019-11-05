@@ -1,17 +1,17 @@
 {
     "TRAINING": {
-        "num_epochs":       1000,
+        "num_epochs":       10000,
         "steps_per_epoch":  100
     },
 
     "MODEL": {
-        "dilation_base":    3,
-        "dilation_depth":   8,
+        "dilation_base":    2,
+        "dilation_depth":   10,
 
-        "filter_size":      3,
-        "num_filters":      64,
+        "filter_size":      2,
+        "num_filters":      256,
 
-        "causal":           false,
+        "causal":           true,
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
@@ -22,13 +22,14 @@
         "base":             "timit",
         "speaker_list":     "timit_speakers_100_50w_50m_not_reynolds.txt",
 
-        "condition":        "none",
-        "label":            "speaker",
+        "condition":        "speaker",
+        "label":            "timestep",
 
-        "use_ulaw":         false,
+        "type":             "real",
+        "use_ulaw":         true,
         "val_set":          0.2,
         "queue_size":       50,
-        "batch_size":       20
+        "batch_size":       10
     },
 
     "OPTIMIZER": {

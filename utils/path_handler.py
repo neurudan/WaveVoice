@@ -35,5 +35,11 @@ def get_speaker_list_path(dataset):
 def get_speaker_list_files(dataset):
     return find_in_path(get_speaker_list_path(dataset), '.txt')
 
-def get_config_path(filename=''):
-    return get_base_dir() + 'configs/' + filename
+def get_config_path():
+    return get_base_dir() + 'configs/'
+
+def get_sweep_config_path(filename=''):
+    return get_config_path() + 'sweep/' + filename
+
+def get_base_config_path(filename=''):
+    return get_config_path() + 'base/' + filename

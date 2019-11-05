@@ -1,0 +1,48 @@
+{
+    "name": "overfitted baselines timit",
+    "method": "grid",
+    "parameters": {
+        "config_name": {
+            "value": "SV.json"
+        },
+        
+        
+        "01.SWEEP.TRAINING.num_epochs": {
+            "value": 300
+        },
+        "01.SWEEP.TRAINING.steps_per_epoch": {
+            "value": 1
+        },
+
+
+        "01.SWEEP.DATASET.type": {
+            "value": "overfit"
+        },
+        "01.SWEEP.DATASET.base": {
+            "value": "timit"
+        },
+
+
+        "01.SWEEP.DATASET.speaker_list": {
+            "values": [
+                "timit_speakers_40_clustering_vs_reynolds.txt",
+                "timit_speakers_60_clustering.txt",
+                "timit_speakers_80_clustering.txt",
+                "timit_speakers_100_50w_50m_not_reynolds.txt",
+                "timit_speakers_200_100m_100f_evaluation.txt",
+                "timit_speakers_470_stratified.txt",
+                "timit_speakers_590_clustering_without_raynolds.txt",
+                "timit_speakers_630_all.txt"
+            ]
+        },
+
+        "01.SWEEP.MODEL.num_filters": {
+            "values": [
+                32,
+                64,
+                128,
+                256
+            ]
+        }
+    }
+}

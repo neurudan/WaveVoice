@@ -1,0 +1,40 @@
+{
+    "name": "overfitted baselines vctk",
+    "method": "grid",
+    "parameters": {
+        "config_name": {
+            "value": "SV.json"
+        },
+        
+        
+        "01.SWEEP.TRAINING.num_epochs": {
+            "value": 300
+        },
+        "01.SWEEP.TRAINING.steps_per_epoch": {
+            "value": 1
+        },
+
+
+        "01.SWEEP.DATASET.type": {
+            "value": "overfit"
+        },
+        "01.SWEEP.DATASET.base": {
+            "value": "vctk"
+        },
+        
+        
+        "01.SWEEP.DATASET.speaker_list": {
+            "value": "vctk_speakers_109_all.txt"
+        },
+        
+        
+        "01.SWEEP.MODEL.num_filters": {
+            "values": [
+                32,
+                64,
+                128,
+                256
+            ]
+        }
+    }
+}

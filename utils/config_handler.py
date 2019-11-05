@@ -1,15 +1,15 @@
 import wandb
 import json
 
-from utils.path_handler import get_config_path
+from utils.path_handler import get_base_config_path
 
 class Config():
     def __init__(self, path):
         wandb.init()
         if path is None:
-            path = get_config_path(wandb.config.get('config_name'))
+            path = get_base_config_path(wandb.config.get('config_name'))
         else:
-            path = get_config_path(path)
+            path = get_base_config_path(path)
         dic = json.load(open(path, 'r'))
         wandb.config.update(dic)
         self.store = {}

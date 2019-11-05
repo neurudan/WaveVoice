@@ -91,7 +91,25 @@ def prepare_vox2_dict(vox2_path):
             vox2_dict[speaker] = audio_files
     return vox2_dict
 
-bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'], 
+def prepare_vctk_dict(vctk_path):
+    required_extension = '.wav'
+
+    vctk_dict = {}
+
+    if vctk_path[-1] != '/':
+        vctk_path += '/'
+
+    for set in ['wav48/']:
+        for speaker in tqdm(os.listdir(vctk_path+set), ncols=100, ascii=True, desc='vctk read '+set):
+            audio_files = []
+            for audio in os.listdir(vctk_path+set+speaker+'/'):
+                if required_extension in audio:
+                    audio_files.append([vctk_path+set+speaker+'/'+audio, audio])
+            vctk_dict[speaker] = audio_files
+    return vctk_dict
+
+bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'],
+         [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'], 
          [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
 
 for [f, base, name] in bases:

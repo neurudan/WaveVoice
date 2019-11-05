@@ -1,5 +1,5 @@
 from utils.data_handler import DataGenerator
-from utils.path_handler import get_config_path
+from utils.path_handler import get_sweep_config_path
 from utils.config_handler import Config
 
 from model.WaveNet import build_WaveNet
@@ -45,8 +45,8 @@ def setup_optimizer(config):
 def train(config_name=None):
     config = Config(config_name)
 
-    steps_per_epoch = config.get('TRAINING.steps_per_epoch')
     num_epochs = config.get('TRAINING.num_epochs')
+    dataset_type = config.get('DATASET.type')
 
     store_required_variables(config)
 
@@ -54,14 +54,20 @@ def train(config_name=None):
     data_generator = DataGenerator(config)
     
     train_generator = data_generator.get_generator('train')
+    train_steps = data_generator.steps_per_epoch
+
     val_generator = data_generator.get_generator('val')
+    val_steps = int(train_steps / 10)
+
+    if dataset_type in ['zeros', 'overfit']:
+        val_generator = None
+        val_steps = None
 
     # Setup Optimizer
     optimizer = setup_optimizer(config)
 
     # Setup Callback
-    (x, y) = val_generator.__next__()
-    wandb_cb = WandbCallback(training_data=(x, y), log_weights=True, log_gradients=True)
+    wandb_cb = WandbCallback()
 
     # Setup Model
     model = build_WaveNet(config)
@@ -72,11 +78,14 @@ def train(config_name=None):
 
     # Train Model
     model.fit_generator(train_generator,
-                        steps_per_epoch=steps_per_epoch,
+                        steps_per_epoch=train_steps,
                         validation_data=val_generator,
-                        validation_steps=int(steps_per_epoch / 10),
+                        validation_steps=val_steps,
                         epochs=num_epochs,
                         callbacks=[wandb_cb])
+
+    # Terminate enqueueing process
+    data_generator.terminate_enqueuer()
 
 
 if __name__ == '__main__':
@@ -97,7 +106,7 @@ if __name__ == '__main__':
     os.environ['WANDB_PROJECT'] = args.project
 
     if args.sweep:
-        path = get_config_path(args.sweep_config)
+        path = get_sweep_config_path(args.sweep_config)
         sweep_config = json.load(open(path, 'r'))
         sweep_id = wandb.sweep(sweep_config)
         wandb.agent(sweep_id, function=train)

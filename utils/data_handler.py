@@ -7,6 +7,25 @@ import h5py
 import time
 import math
 
+
+def get_speaker_list(config):
+    dataset = config.get('DATASET.base')
+    speaker_list = config.get('DATASET.speaker_list')
+    
+    file_path = get_speaker_list_files(dataset)[speaker_list]
+    lines = []
+    with open(file_path) as f:
+        lines = f.readlines()
+    lines = list(set(lines))
+    if '\n' in lines:
+        lines.remove('\n')
+    speakers = []
+    for line in lines:
+        if line[-1] == '\n':
+            line = line[:-1]
+        speakers.append(line)
+    return speakers
+
 class DataGenerator:
     def __init__(self, config):
         self.config = config
@@ -17,20 +36,8 @@ class DataGenerator:
         self.condition = config.get('DATASET.condition')
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
-        speaker_list = config.get('DATASET.speaker_list')
 
-        file_path = get_speaker_list_files(self.dataset)[speaker_list]
-        lines = []
-        with open(file_path) as f:
-            lines = f.readlines()
-        lines = list(set(lines))
-        if '\n' in lines:
-            lines.remove('\n')
-        self.speakers = []
-        for line in lines:
-            if line[-1] == '\n':
-                line = line[:-1]
-            self.speakers.append(line)
+        self.speakers = get_speaker_list(config)
         self.num_speakers = len(self.speakers)
 
         if self.label == 'timestep':

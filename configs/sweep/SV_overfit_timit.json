@@ -5,8 +5,11 @@
         "config_name": {
             "value": "SV.json"
         },
+        "run_name": {
+            "value": "overfit-baseline (+DATASET.base+, s+DATASET.num_speakers+, f+MODEL.num_filters+)"
+        },
         
-        
+
         "01.SWEEP.TRAINING.num_epochs": {
             "value": 150
         },

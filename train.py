@@ -17,6 +17,33 @@ import os
 import argparse
 
 
+def update_run_name(config):
+    run_name = '_'.join(config.file_name.split('.')[:-1])
+    try:
+        name_parts = config.get('run_name').split('+')
+        name = ''
+        for part in name_parts:
+            try:
+                p = config.get(part)
+                if p is None:
+                    name += part
+                else:
+                    name += str(p)
+            except:
+                name += part
+        run_name = name
+    except:
+        pass
+    print(run_name)
+    run_id = config.run.id
+    
+    api = wandb.Api()
+    runs = api.runs(path=os.environ['WANDB_ENTITY']+"/"+os.environ['WANDB_PROJECT'])
+    for run in runs:
+        if run.id == run_id:
+            run.name = run_name
+            run.update()
+
 def store_required_variables(config):
     dilation_base = config.get('MODEL.dilation_base')
     dilation_depth = config.get('MODEL.dilation_depth')
@@ -75,6 +102,8 @@ def train(config_name=None):
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
+
+    update_run_name(config)
 
     # Train Model
     model.fit_generator(train_generator,

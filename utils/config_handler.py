@@ -2,17 +2,21 @@ import wandb
 import json
 
 from utils.path_handler import get_base_config_path
+from utils.data_handler import get_speaker_list
+
 
 class Config():
-    def __init__(self, path):
-        wandb.init()
-        if path is None:
-            path = get_base_config_path(wandb.config.get('config_name'))
-        else:
-            path = get_base_config_path(path)
+    def __init__(self, file_name):
+        self.store = {}
+        self.run = wandb.init()
+        if file_name is None:
+            file_name = wandb.config.get('config_name')
+        self.file_name = file_name
+
+        path = get_base_config_path(self.file_name)
+
         dic = json.load(open(path, 'r'))
         wandb.config.update(dic)
-        self.store = {}
 
     def get(self, key):
         try:

@@ -15,7 +15,7 @@
         
 
         "01.SWEEP.TRAINING.num_epochs": {
-            "value": 500
+            "value": 250
         },
         "01.SWEEP.TRAINING.steps_per_epoch": {
             "value": 100

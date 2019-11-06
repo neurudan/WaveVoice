@@ -7,7 +7,6 @@ from model.WaveNet import build_WaveNet
 from keras.engine import Input, Model
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 from keras.metrics import categorical_accuracy
-from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from wandb.keras import WandbCallback
 
@@ -72,6 +71,7 @@ def setup_optimizer(config):
     }
     return optimizers[config.get('OPTIMIZER.type')]
 
+
 def train(config_name=None):
     config = Config(config_name)
 
@@ -98,6 +98,7 @@ def train(config_name=None):
 
     # Setup Callback
     wandb_cb = WandbCallback()
+    #loss_cb = LambdaCallback(on_batch_end=loss_print)
 
     # Setup Model
     model = build_WaveNet(config)

@@ -38,7 +38,8 @@
     },
 
     "OUTPUT_DENSE": {
-        "num_hidden":       [128]
+        "select_middle":    true,
+        "num_filters":      [128]
     },
 
     "OUTPUT_CONV_ORIG": {

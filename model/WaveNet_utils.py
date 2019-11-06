@@ -185,7 +185,7 @@ def output_dense(input, config):
         bin_id = int((receptive_field - 1) / 2)
 
     output = Lambda(lambda x: x[:,bin_id,:],
-                    output_shape=(output._keras_shape[-1],), name='Select_single_bin')(input)
+                    output_shape=(input._keras_shape[-1],), name='Select_single_bin')(input)
 
     for i, num_filter in enumerate(num_filters):
         output = Dense(num_filter, activation='relu', name='Embeddings_%d'%i)(output)

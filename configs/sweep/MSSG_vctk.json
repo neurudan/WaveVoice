@@ -1,5 +1,5 @@
 {
-    "name": "overfitted baselines vctk",
+    "name": "MSSG baselines vctk",
     "method": "grid",
     "parameters": {
         "config_name": {

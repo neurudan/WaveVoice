@@ -172,11 +172,21 @@ def use_both_connections(residual_connection, skip_connections, config):
 # Output Blocks
 # =============
 
+# This should be the same as output_conv_orig
+
 def output_dense(input, config):
     num_filters = config.get('OUTPUT_DENSE.num_filters')
+    select_middle = config.get('OUTPUT_DENSE.select_middle')
     output_bins = config.get('DATASET.output_bins')
+    receptive_field = config.get('MODEL.receptive_field')
 
-    output = input
+    bin_id = -1
+    if select_middle:
+        bin_id = int((receptive_field - 1) / 2)
+
+    output = Lambda(lambda x: x[:,bin_id,:],
+                    output_shape=(output._keras_shape[-1],), name='Select_single_bin')(input)
+
     for i, num_filter in enumerate(num_filters):
         output = Dense(num_filter, activation='relu', name='Embeddings_%d'%i)(output)
     
@@ -204,6 +214,8 @@ def output_conv_orig(input, config):
     output = Lambda(lambda x: x[:,bin_id,:],
                     output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)
     return output
+
+# This is Bullshit
 
 def output_conv_down(input, config):
     filter_sizes = config.get('OUTPUT_CONV_DOWN.filter_size')

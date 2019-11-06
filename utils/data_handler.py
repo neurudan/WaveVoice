@@ -180,7 +180,7 @@ class DataGenerator:
             while True:
                 samples, timesteps, speaker_samples = samples_o[i:i+batch_size], timesteps_o[i:i+batch_size], speaker_samples_o[i:i+batch_size]
                 i += batch_size
-                if i > len(samples_o):
+                if i >= len(samples_o):
                     i = 0
                 try:
                     if self.train_queue.qsize() > self.val_queue.qsize():

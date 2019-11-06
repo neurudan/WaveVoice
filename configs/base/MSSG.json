@@ -15,7 +15,7 @@
 
         "residual_block":   "resblock_cond",
         "connection_block": "skip",
-        "output_block":     "output_conv_orig"
+        "output_block":     "output_dense"
     },
 
     "DATASET": {
@@ -38,11 +38,12 @@
     },
 
     "OUTPUT_DENSE": {
-        "num_hidden":       [128]
+        "select_middle":    false,
+        "num_hidden":       [256]
     },
 
     "OUTPUT_CONV_ORIG": {
-        "select_middle":    true,
+        "select_middle":    false,
         "filter_size":      [1, 1]
     },
 

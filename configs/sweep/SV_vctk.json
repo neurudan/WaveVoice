@@ -2,8 +2,8 @@
     "name": "SV baselines vctk",
     "method": "bayes",
     "metric": {
-        "name": "loss",
-        "goal": "minimize"
+        "name": "accuracy",
+        "goal": "maximize"
     },
     "parameters": {
         "config_name": {

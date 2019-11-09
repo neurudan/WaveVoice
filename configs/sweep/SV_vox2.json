@@ -30,14 +30,15 @@
 
         "01;SWEEP;MODEL;num_filters": {
             "min": 16,
-            "max": 1000
+            "max": 400
         },
 
 
         "01;SWEEP;OUTPUT_DENSE;num_filters": {
             "min" : 16,
-            "max" : 1000
+            "max" : 400
         },
+
 
 
         "01;SWEEP;DATASET;type": {

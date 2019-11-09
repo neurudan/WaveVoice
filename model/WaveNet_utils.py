@@ -180,6 +180,9 @@ def output_dense(input, config):
     output_bins = config.get('DATASET.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
 
+    if type(num_filters) is not list:
+        num_filters = [num_filters]
+
     bin_id = -1
     if select_middle:
         bin_id = int((receptive_field - 1) / 2)

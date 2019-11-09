@@ -26,7 +26,7 @@ class Config():
             return val
         except:
             pass
-        val = wandb.config.get('01.SWEEP.' + key)
+        val = wandb.config.get('01;SWEEP;' + key.replace('.',';'))
         if val is None:
             keys = key.split('.')
             val = wandb.config.get(keys[0])

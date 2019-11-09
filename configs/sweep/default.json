@@ -14,7 +14,7 @@
         },
 
         
-        "01.SWEEP.MODEL.num_filters": {
+        "01;SWEEP;MODEL;num_filters": {
             "values": [
                 32,
                 64,

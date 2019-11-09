@@ -1,5 +1,5 @@
 {
-    "name": "MSSG baselines vctk",
+    "name": "SV baselines timit",
     "method": "bayes",
     "metric": {
         "name": "loss",
@@ -7,7 +7,7 @@
     },
     "parameters": {
         "config_name": {
-            "value": "MSSG.json"
+            "value": "SV.json"
         },
         "run_name": {
             "value": "baseline (+DATASET.base+, s+DATASET.num_speakers+)"
@@ -15,7 +15,7 @@
         
 
         "01;SWEEP;TRAINING;num_epochs": {
-            "value": 250
+            "value": 1000
         },
         "01;SWEEP;TRAINING;steps_per_epoch": {
             "value": 100
@@ -28,16 +28,28 @@
         },
 
 
+        "01;SWEEP;MODEL;num_filters": {
+            "min": 16,
+            "max": 1000
+        },
+
+
+        "01;SWEEP;OUTPUT_DENSE;num_filters": {
+            "min" : 16,
+            "max" : 1000
+        },
+
+
         "01;SWEEP;DATASET;type": {
             "value": "real"
         },
         "01;SWEEP;DATASET;base": {
-            "value": "vctk"
+            "value": "timit"
         },
         
         
         "01;SWEEP;DATASET;speaker_list": {
-            "value": "vctk_speakers_109_all.txt"
+            "value": "timit_speakers_470_stratified.txt"
         }
     }
 }

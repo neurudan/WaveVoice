@@ -29,9 +29,12 @@ def create_h5_file(h5_path, audio_dict, progress_file):
     else:
         audio_dict = pickle.load(open(progress_file, 'rb'))
     total = 0
+    total_s = 0
     for speaker in audio_dict:
+        total_s += 1
         total += len(audio_dict[speaker])
 
+    pbar_s = tqdm(total=total_s, desc='speaker extraction', ncols=100, ascii=True)
     pbar = tqdm(total=total, desc='audio extraction', ncols=100, ascii=True)
 
     progress_dict = audio_dict.copy()
@@ -49,8 +52,10 @@ def create_h5_file(h5_path, audio_dict, progress_file):
             pbar.update(1)
         progress_dict.pop(speaker, None)
         pickle.dump(progress_dict, open(progress_file, 'wb'))
+        pbar_s.update(1)
 
     pbar.close()
+    pbar_s.close()
 
 def prepare_timit_dict(timit_path):
     ignored_files = ['._.DS_Store', '.DS_Store']
@@ -87,7 +92,7 @@ def prepare_vox2_dict(vox2_path):
             for video in os.listdir(vox2_path+set+speaker):
                 for audio in os.listdir(vox2_path+set+speaker+'/'+video):
                     if required_extension in audio:
-                        audio_files.append([vox2_path+set+speaker+'/'+video+'/'+audio, audio])
+                        audio_files.append([vox2_path+set+speaker+'/'+video+'/'+audio, video+'/'+audio])
             vox2_dict[speaker] = audio_files
     return vox2_dict
 

@@ -15,7 +15,7 @@
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
-        "output_block":     "output_conv_orig"
+        "output_block":     "output_dense"
     },
 
     "DATASET": {

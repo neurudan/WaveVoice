@@ -10,23 +10,23 @@
         },
         
 
-        "01.SWEEP.TRAINING.num_epochs": {
+        "01;SWEEP;TRAINING;num_epochs": {
             "value": 150
         },
-        "01.SWEEP.TRAINING.steps_per_epoch": {
+        "01;SWEEP;TRAINING;steps_per_epoch": {
             "value": 1
         },
 
 
-        "01.SWEEP.DATASET.type": {
+        "01;SWEEP;DATASET;type": {
             "value": "overfit"
         },
-        "01.SWEEP.DATASET.base": {
+        "01;SWEEP;DATASET;base": {
             "value": "timit"
         },
 
 
-        "01.SWEEP.DATASET.speaker_list": {
+        "01;SWEEP;DATASET;speaker_list": {
             "values": [
                 "timit_speakers_40_clustering_vs_reynolds.txt",
                 "timit_speakers_60_clustering.txt",
@@ -39,7 +39,7 @@
             ]
         },
 
-        "01.SWEEP.MODEL.num_filters": {
+        "01;SWEEP;MODEL;num_filters": {
             "values": [
                 32,
                 64,

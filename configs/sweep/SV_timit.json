@@ -29,14 +29,12 @@
 
 
         "01;SWEEP;MODEL;num_filters": {
-            "min": 16,
-            "max": 400
+            "value": 128
         },
 
 
         "01;SWEEP;OUTPUT_DENSE;num_filters": {
-            "min" : 16,
-            "max" : 400
+            "value": 128
         },
 
 

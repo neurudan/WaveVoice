@@ -76,31 +76,35 @@ def train(config_name=None):
     config = Config(config_name)
 
     num_epochs = config.get('TRAINING.num_epochs')
-    dataset_type = config.get('DATASET.type')
+    batch_type = config.get('DATASET.batch_type')
 
     store_required_variables(config)
 
+
     # Setup Data-Generator
+    print('set up data generator', flush=True)
     data_generator = DataGenerator(config)
     
     train_generator = data_generator.get_generator('train')
     train_steps = data_generator.steps_per_epoch
 
-    val_generator = data_generator.get_generator('val')
-    val_steps = int(train_steps / 10)
+    val_generator = None
+    val_steps = None
+    if batch_type == 'real':
+        val_generator = data_generator.get_generator('val')
+        val_steps = int(train_steps / 10)
 
-    if dataset_type in ['zeros', 'overfit']:
-        val_generator = None
-        val_steps = None
 
     # Setup Optimizer
+    print('set up optimizer', flush=True)
     optimizer = setup_optimizer(config)
 
     # Setup Callback
+    print('set up wandb callback', flush=True)
     wandb_cb = WandbCallback()
-    #loss_cb = LambdaCallback(on_batch_end=loss_print)
 
     # Setup Model
+    print('set up model', flush=True)
     model = build_WaveNet(config)
     model.summary()
     model.compile(optimizer=optimizer,
@@ -110,6 +114,7 @@ def train(config_name=None):
     update_run_name(config)
 
     # Train Model
+    print('train model', flush=True)
     model.fit_generator(train_generator,
                         steps_per_epoch=train_steps,
                         validation_data=val_generator,

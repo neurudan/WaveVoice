@@ -4,28 +4,44 @@ import os
 import numpy as np
 import pickle
 
+from scipy import signal
 from tqdm import tqdm
 
-def ulaw(x):
+
+def orig(x, fs=16000):
+    return x
+
+def ulaw(x, fs=16000):
     u = 255
     x = np.sign(x) * (np.log(1 + u * np.abs(x)) / np.log(1 + u))
     x = (x + 1.) / 2. * np.iinfo('uint8').max
     return x.astype('uint8')
 
+def mel_spectrogram(x, fs=16000):
+    nperseg = int(10 * fs / 1000)
+    mel_spectrogram = librosa.feature.melspectrogram(y=x, sr=fs, n_fft=1024, hop_length=nperseg)
+    mel_spectrogram = np.log10(1 + 10000 * mel_spectrogram).T
+    return mel_spectrogram
+
+
+functions = [[ulaw, 'ulaw.h5', h5py.special_dtype(vlen=np.dtype('uint8'))],
+             [orig, 'original.h5', h5py.special_dtype(vlen=np.dtype('float32'))],
+             [mel_spectrogram, 'mel.h5', h5py.special_dtype(vlen=np.dtype('float32'))]]
+
+
 def create_h5_file(h5_path, audio_dict, progress_file):
+    global functions
     if not os.path.isfile(progress):
-        for use_ulaw, name in [[True, 'ulaw.h5'], [False, 'original.h5']]:
-            dt = h5py.special_dtype(vlen=np.dtype('float32'))
-            if use_ulaw:
-                dt = h5py.special_dtype(vlen=np.dtype('uint8'))
+        for _, name, data_type in functions:
             with h5py.File(h5_path + name, 'w') as f:
                 data = f.create_group('data')
                 audio_names = f.create_group('audio_names')
                 statistics = f.create_group('statistics')
                 for speaker in audio_dict:
-                    data.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=dt)
-                    audio_names.create_dataset(speaker, (len(audio_dict[speaker]),), dtype=h5py.string_dtype(encoding='utf-8'))
-                    statistics.create_dataset(speaker, (len(audio_dict[speaker]),), dtype='long')
+                    shape = (len(audio_dict[speaker]),)
+                    data.create_dataset(speaker, shape, dtype=data_type)
+                    audio_names.create_dataset(speaker, shape, dtype=h5py.string_dtype(encoding='utf-8'))
+                    statistics.create_dataset(speaker, shape, dtype='long')
     else:
         audio_dict = pickle.load(open(progress_file, 'rb'))
     total = 0
@@ -41,14 +57,19 @@ def create_h5_file(h5_path, audio_dict, progress_file):
 
     for speaker in audio_dict:
         for i, [audio_file, name] in enumerate(audio_dict[speaker]):
-            x, _ = librosa.core.load(audio_file)
-            with h5py.File(h5_path + 'original.h5', 'a') as f:
-                f['data/'+speaker][i] = x
-                f['statistics/'+speaker][i] = len(x)
-            x = ulaw(x)
-            with h5py.File(h5_path + 'ulaw.h5', 'a') as f:
-                f['data/'+speaker][i] = x
-                f['statistics/'+speaker][i] = len(x)
+            x, fs = librosa.core.load(audio_file, sr=16000)
+            for function, name, _ in functions:
+                with h5py.File(h5_path + name, 'a') as f:
+                    x_new = function(x, fs)
+                    length = len(x_new)
+                    
+                    total_length = 1
+                    for dim in list(x_new.shape):
+                        total_length *= dim
+                    x_new = x_new.reshape((total_length))
+
+                    f['data/'+speaker][i] = x_new
+                    f['statistics/'+speaker][i] = length
             pbar.update(1)
         progress_dict.pop(speaker, None)
         pickle.dump(progress_dict, open(progress_file, 'wb'))

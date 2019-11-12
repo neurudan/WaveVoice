@@ -25,8 +25,8 @@
         "condition":        "none",
         "label":            "speaker",
 
-        "type":             "real",
-        "use_ulaw":         false,
+        "data_type":        "original",
+        "batch_type":       "real",
         "val_set":          0.2,
         "queue_size":       50,
         "batch_size":       10

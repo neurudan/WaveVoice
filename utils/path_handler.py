@@ -24,10 +24,13 @@ def get_dataset_base_path():
 def get_dataset_path(dataset):
     return get_dataset_base_path() + dataset + '/'
 
-def get_dataset_file(dataset, use_ulaw=False):
-    if use_ulaw:
+def get_dataset_file(dataset, data_type):
+    if data_type == 'original':
+        return get_dataset_path(dataset)+dataset+'_original.h5'
+    elif data_type == 'ulaw':
         return get_dataset_path(dataset)+dataset+'_ulaw.h5'
-    return get_dataset_path(dataset)+dataset+'_original.h5'
+    elif data_type == 'mel':
+        return get_dataset_path(dataset)+dataset+'_mel.h5'
 
 def get_speaker_list_path(dataset):
     return get_dataset_path(dataset) + 'speaker_lists/'

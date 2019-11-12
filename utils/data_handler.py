@@ -31,7 +31,7 @@ class DataGenerator:
         self.config = config
 
         self.dataset = config.get('DATASET.base')
-        self.use_ulaw = config.get('DATASET.use_ulaw')
+        self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
         queue_size = config.get('DATASET.queue_size')
@@ -47,7 +47,7 @@ class DataGenerator:
         config.set('DATASET.num_speakers', self.num_speakers)
 
         self.statistics = {}
-        with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+        with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
             for speaker in self.speakers:
                 times = data['statistics/'+speaker][:]
                 id_times = list(zip(np.arange(len(times)), times))
@@ -64,6 +64,7 @@ class DataGenerator:
                         train_ids.append((id, time))
                 self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
 
+        print('done')
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
 
@@ -71,7 +72,7 @@ class DataGenerator:
         self.enqueuer.start()
 
         self.steps_per_epoch = config.get('TRAINING.steps_per_epoch')
-        if self.config.get('DATASET.type') == 'overfit':
+        if self.config.get('DATASET.batch_type') == 'overfit':
             self.steps_per_epoch = math.ceil(self.num_speakers / self.config.get('DATASET.batch_size'))
 
 
@@ -80,16 +81,26 @@ class DataGenerator:
         speaker_sample[self.speakers.index(speaker)] = 1
 
         ids, times = zip(*self.statistics[speaker][dset])
+        
         temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
         sample_id = ids[temp_id]
 
         start_id = np.random.randint(times[temp_id] - receptive_field - 1)
-        sample = data['data/' + speaker][sample_id][start_id:start_id + receptive_field + 1]
+        offset = receptive_field + 1
+
+        sample = None
+        if self.data_type == 'mel':
+            sample = data['data/' + speaker][sample_id][:,start_id * 128:(start_id + offset) * 128]
+            sample = sample.reshape((offset, 128))
+        else:
+            sample = data['data/' + speaker][sample_id][:,start_id:start_id + offset]
 
         next_timestep = sample[-1]
+        print(next_timestep.shape)
         sample = sample[:-1]
+        print(sample.shape)
 
-        if self.use_ulaw:
+        if self.data_type == 'ulaw':
             sample = sample.reshape(sample.shape[0], 1)
             temp = self.empty_sample.copy()
             temp[sample] = 1
@@ -98,7 +109,6 @@ class DataGenerator:
             temp = self.empty_timestep.copy()
             temp[next_timestep] = 1
             next_timestep = temp
-        
         return [sample, next_timestep, speaker_sample]
 
 
@@ -115,21 +125,21 @@ class DataGenerator:
 
         samples, timesteps, speaker_samples = zip(*samples)
         samples = np.array(list(samples), dtype='float32')
-        if not self.use_ulaw:
+        if self.data_type == 'original':
             samples = samples.reshape(samples.shape + (1,))
         return samples, np.array(list(timesteps), dtype='float32'), np.array(list(speaker_samples), dtype='float32')
 
     def sample_enqueuer(self):
         batch_size = self.config.get('DATASET.batch_size')
         receptive_field = self.config.get('MODEL.receptive_field')
-        dataset_type = self.config.get('DATASET.type')
+        batch_type = self.config.get('DATASET.batch_type')
 
         self.empty_speaker_sample = np.zeros(self.num_speakers)
         self.empty_sample = np.zeros((receptive_field, 256))
         self.empty_timestep = np.zeros(256)
         
-        if dataset_type == 'real':
-            with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+        if batch_type == 'real':
+            with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
                 while True:
                     try:
                         if self.train_queue.qsize() > self.val_queue.qsize():
@@ -138,15 +148,19 @@ class DataGenerator:
                         else:
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
                             self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                    except:
-                        pass
-        elif dataset_type == 'zeros':
+                    except Exception as e:
+                        print(e)
+        elif batch_type == 'zeros':
             # generate zero samples (inspired by karpathys blog for testing)
             empty_timesteps = np.zeros((batch_size, 256))
-            empty_samples = np.zeros((batch_size, receptive_field, 256))
-            if not self.use_ulaw:
-                empty_samples = np.zeros((batch_size, receptive_field, 1))
             empty_speaker_samples = np.zeros((batch_size, self.num_speakers))
+            empty_samples = None
+            if self.data_type == 'original':
+                empty_samples = np.zeros((batch_size, receptive_field, 1))
+            elif self.data_type == 'ulaw':
+                empty_samples = np.zeros((batch_size, receptive_field, 256))
+            elif self.data_type == 'mel':
+                empty_samples = np.zeros((batch_size, receptive_field, 128))
             while True:
                 if self.label == 'speaker':
                     speaker_samples = empty_speaker_samples.copy()
@@ -170,10 +184,10 @@ class DataGenerator:
                             self.train_queue.put([empty_samples, empty_timesteps, speaker_samples], timeout=0.5)
                     except:
                         pass
-        elif dataset_type == 'overfit':
+        elif batch_type == 'overfit':
             # generates a single batch and always yields this batch to overfit on it (inspired by karpathys blog for testing)
             samples_o, timesteps_o, speaker_samples_o = None, None, None
-            with h5py.File(get_dataset_file(self.dataset, self.use_ulaw), 'r') as data:
+            with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
                 samples_o, timesteps_o, speaker_samples_o = self.__get_batch__(batch_size, receptive_field, 'train', data, from_all_speakers=True)
             
             i = 0

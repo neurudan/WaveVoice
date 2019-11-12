@@ -3,9 +3,11 @@ import librosa
 import os
 import numpy as np
 import pickle
+import shutil
 
 from scipy import signal
 from tqdm import tqdm
+from utils.path_handler import get_dataset_path
 
 
 def orig(x, fs=16000):
@@ -30,7 +32,7 @@ functions = [[ulaw, 'ulaw.h5', h5py.special_dtype(vlen=np.dtype('uint8'))],
 
 
 def create_h5_file(h5_path, audio_dict, progress_file, name):
-    print('extracting %s corpus:'%name)
+    print('extracting %s corpus:'%name, flush=True)
     global functions
     if not os.path.isfile(progress):
         for _, name, data_type in functions:
@@ -78,7 +80,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
 
     pbar.close()
     pbar_s.close()
-    print('%s extraction finished!\n'%name)
+    print('%s extraction finished!\n'%name, flush=True)
 
 def prepare_timit_dict(timit_path):
     ignored_files = ['._.DS_Store', '.DS_Store']
@@ -136,21 +138,29 @@ def prepare_vctk_dict(vctk_path):
             vctk_dict[speaker] = audio_files
     return vctk_dict
 
-bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'],
-         [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'], 
-         [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
+def setup_datasets():
+    global functions
+    bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'],
+            [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'], 
+            [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
 
-for [f, base, name] in bases:
-    dest = base + name
-    full_struct = base + 'full_structure.p'
-    progress = base + 'progress.p'
+    for [f, base, name] in bases:
+        dest = base + name
+        full_struct = base + 'full_structure.p'
+        progress = base + 'progress.p'
 
-    dic = None
+        dic = None
 
-    if not os.path.isfile(full_struct):
-        dic = f(base)
-        pickle.dump(dic, open(full_struct, 'wb'))
-    else:
-        dic = pickle.load(open(full_struct, 'rb'))
+        if not os.path.isfile(full_struct):
+            dic = f(base)
+            pickle.dump(dic, open(full_struct, 'wb'))
+        else:
+            dic = pickle.load(open(full_struct, 'rb'))
 
-    create_h5_file(dest, dic, progress, name.replace('_', ''))
+        if os.path.isfile(progress):
+            temp = pickle.load(open(progress, 'rb'))
+            if len(temp.keys()) != 0:
+                create_h5_file(dest, dic, progress, name.replace('_', ''))
+                project = get_dataset_path(name.replace('_', '')) + name
+                for _, suffix, _ in functions:
+                    shutil.copyfile(dest + suffix, project + suffix)

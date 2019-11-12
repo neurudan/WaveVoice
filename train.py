@@ -1,6 +1,7 @@
 from utils.data_handler import DataGenerator
 from utils.path_handler import get_sweep_config_path
 from utils.config_handler import Config
+from utils.preprocessing import setup_datasets 
 
 from model.WaveNet import build_WaveNet
 
@@ -136,17 +137,22 @@ if __name__ == '__main__':
                         help='The config file to use - is only used, if --sweep has not been passed. (default is "default.json")')
     parser.add_argument('--sweep-config', '-sc', dest='sweep_config', default='sweep_default.json',
                         help='The sweep config file to use - is only used, if --sweep has been passed aswell. (default is "sweep_default.json")')
+    parser.add_argument('--setup', dest='setup', action='store_true',
+                        help='If passed, the datasets are being set up.')
 
     args = parser.parse_args()
     
-    os.environ['WANDB_ENTITY'] = 'bratwolf'
-    os.environ['WANDB_AGENT_REPORT_INTERVAL'] = '0'
-    os.environ['WANDB_PROJECT'] = args.project
-
-    if args.sweep:
-        path = get_sweep_config_path(args.sweep_config)
-        sweep_config = json.load(open(path, 'r'))
-        sweep_id = wandb.sweep(sweep_config)
-        wandb.agent(sweep_id, function=train)
+    if args.setup:
+        setup_datasets()
     else:
-        train(config_name=args.config)
+        os.environ['WANDB_ENTITY'] = 'bratwolf'
+        os.environ['WANDB_AGENT_REPORT_INTERVAL'] = '0'
+        os.environ['WANDB_PROJECT'] = args.project
+
+        if args.sweep:
+            path = get_sweep_config_path(args.sweep_config)
+            sweep_config = json.load(open(path, 'r'))
+            sweep_id = wandb.sweep(sweep_config)
+            wandb.agent(sweep_id, function=train)
+        else:
+            train(config_name=args.config)

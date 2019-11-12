@@ -151,6 +151,7 @@ def setup_datasets():
 
         dic = None
 
+        print('\n')
         if not os.path.isfile(full_struct):
             dic = f(base)
             pickle.dump(dic, open(full_struct, 'wb'))
@@ -170,3 +171,4 @@ def setup_datasets():
             for _, suffix, _ in functions:
                 print('copying %s to project folder...'%(name+suffix))
                 shutil.copyfile(dest + suffix, project + suffix)
+            print('\n')

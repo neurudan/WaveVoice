@@ -29,7 +29,8 @@ functions = [[ulaw, 'ulaw.h5', h5py.special_dtype(vlen=np.dtype('uint8'))],
              [mel_spectrogram, 'mel.h5', h5py.special_dtype(vlen=np.dtype('float32'))]]
 
 
-def create_h5_file(h5_path, audio_dict, progress_file):
+def create_h5_file(h5_path, audio_dict, progress_file, name):
+    print('extracting %s corpus:'%name)
     global functions
     if not os.path.isfile(progress):
         for _, name, data_type in functions:
@@ -77,6 +78,7 @@ def create_h5_file(h5_path, audio_dict, progress_file):
 
     pbar.close()
     pbar_s.close()
+    print('%s extraction finished!\n')
 
 def prepare_timit_dict(timit_path):
     ignored_files = ['._.DS_Store', '.DS_Store']
@@ -151,4 +153,4 @@ for [f, base, name] in bases:
     else:
         dic = pickle.load(open(full_struct, 'rb'))
 
-    create_h5_file(dest, dic, progress)
+    create_h5_file(dest, dic, progress, name.replace('_', ''))

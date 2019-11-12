@@ -168,4 +168,5 @@ def setup_datasets():
             create_h5_file(dest, dic, progress, name.replace('_', ''))
             project = get_dataset_path(name.replace('_', '')) + name
             for _, suffix, _ in functions:
+                print('copying %s to project folder...'%(name+suffix))
                 shutil.copyfile(dest + suffix, project + suffix)

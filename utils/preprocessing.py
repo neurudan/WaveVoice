@@ -34,7 +34,7 @@ functions = [[ulaw, 'ulaw.h5', h5py.special_dtype(vlen=np.dtype('uint8'))],
 def create_h5_file(h5_path, audio_dict, progress_file, name):
     print('extracting %s corpus:'%name, flush=True)
     global functions
-    if not os.path.isfile(progress):
+    if not os.path.isfile(progress_file):
         for _, name, data_type in functions:
             with h5py.File(h5_path + name, 'w') as f:
                 data = f.create_group('data')

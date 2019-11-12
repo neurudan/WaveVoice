@@ -78,7 +78,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
 
     pbar.close()
     pbar_s.close()
-    print('%s extraction finished!\n')
+    print('%s extraction finished!\n'%name)
 
 def prepare_timit_dict(timit_path):
     ignored_files = ['._.DS_Store', '.DS_Store']

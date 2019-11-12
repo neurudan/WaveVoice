@@ -1,12 +1,19 @@
 from keras.layers import Conv1D
 from keras.engine import Model
 from model.WaveNet_utils import RESIDUAL_BLOCKS, CONNECTION_BLOCKS, OUTPUT_BLOCKS, get_input, SincConv1D
+from model.losses import AngularLoss
 
 
 def build_WaveNet(config):
     dilation_depth = config.get('MODEL.dilation_depth')
     filter_size = config.get('MODEL.filter_size')
     num_filters = config.get('MODEL.num_filters')
+
+    loss = 'categorical_crossentropy'
+    if config.get('MODEL.loss') == 'angular_margin':
+        loss = AngularLoss(config)
+        config.set('loss', loss)
+        loss = loss.angular_loss
 
     residual_block = RESIDUAL_BLOCKS[config.get('MODEL.residual_block')]
     connection_block = CONNECTION_BLOCKS[config.get('MODEL.connection_block')]
@@ -27,4 +34,4 @@ def build_WaveNet(config):
     output = connection_block(residual_connection, skip_connections, config)
     output = output_block(output, config)
 
-    return Model(input, output)
+    return Model(input, output), loss

@@ -37,7 +37,6 @@ def update_run_name(config):
         run_name = name
     except:
         pass
-    print(run_name)
     run_id = config.run.id
     
     api = wandb.Api()
@@ -83,7 +82,6 @@ def train(config_name=None):
 
 
     # Setup Data-Generator
-    print('set up data generator', flush=True)
     data_generator = DataGenerator(config)
     
     train_generator = data_generator.get_generator('train')
@@ -93,29 +91,25 @@ def train(config_name=None):
     val_steps = None
     if batch_type == 'real':
         val_generator = data_generator.get_generator('val')
-        val_steps = int(train_steps / 10)
+        val_steps = train_steps
 
 
     # Setup Optimizer
-    print('set up optimizer', flush=True)
     optimizer = setup_optimizer(config)
 
     # Setup Callback
-    print('set up wandb callback', flush=True)
     wandb_cb = WandbCallback()
 
     # Setup Model
-    print('set up model', flush=True)
-    model = build_WaveNet(config)
+    model, loss = build_WaveNet(config)
     model.summary()
     model.compile(optimizer=optimizer,
-                  loss='categorical_crossentropy',
+                  loss=loss,
                   metrics=['accuracy'])
 
     update_run_name(config)
 
     # Train Model
-    print('train model', flush=True)
     model.fit_generator(train_generator,
                         steps_per_epoch=train_steps,
                         validation_data=val_generator,
@@ -141,7 +135,6 @@ if __name__ == '__main__':
                         help='If passed, the datasets are being set up.')
 
     args = parser.parse_args()
-    
     if args.setup:
         setup_datasets()
     else:

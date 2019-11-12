@@ -1,4 +1,4 @@
-from keras.layers import Conv1D, Dense, Activation, Lambda, AveragePooling1D, Add, Multiply, RepeatVector, Flatten, Layer
+from keras.layers import Conv1D, Dense, Activation, Lambda, AveragePooling1D, Add, Multiply, RepeatVector, Flatten, Layer, Dropout
 from keras.engine import Input
 from keras.utils.conv_utils import conv_output_length
 
@@ -202,6 +202,8 @@ def resblock_cond(input, dilation_rate, config):
     num_filters = config.get('MODEL.num_filters')
     causal = config.get('MODEL.causal')
     receptive_field = config.get('MODEL.receptive_field')
+    res_drop_rate = config.get('MODEL.res_drop_rate')
+    skip_drop_rate = config.get('MODEL.skip_drop_rate')
 
     suffix = '-dilation%d'%dilation_rate
 
@@ -228,7 +230,10 @@ def resblock_cond(input, dilation_rate, config):
     gau_output = Multiply(name='Gated_Activation_Unit'+suffix)([filter_output, gate_output])
 
     skip_output = Conv1D(num_filters, filter_size, padding='same', name='Skip_Connection'+suffix)(gau_output)
+    skip_output = Dropout(skip_drop_rate)(skip_output)
+
     residual_conv_output = Conv1D(num_filters, filter_size, padding='same', name='Residual_Conv1D'+suffix)(gau_output)
+    residual_conv_output = Dropout(res_drop_rate)(residual_conv_output)
     residual_output = Add(name='Residual_Connection'+suffix)([input[0], residual_conv_output])
 
     return residual_output, skip_output
@@ -239,6 +244,8 @@ def resblock_orig(input, dilation_rate, config):
     filter_size = config.get('MODEL.filter_size')
     num_filters = config.get('MODEL.num_filters')
     causal = config.get('MODEL.causal')
+    res_drop_rate = config.get('MODEL.res_drop_rate')
+    skip_drop_rate = config.get('MODEL.skip_drop_rate')
 
     suffix = '-dilation%d'%dilation_rate
 
@@ -254,7 +261,10 @@ def resblock_orig(input, dilation_rate, config):
     gau_output = Multiply(name='Gated_Activation_Unit'+suffix)([filter_output, gate_output])
 
     skip_output = Conv1D(num_filters, filter_size, padding='same', name='Skip_Connection'+suffix)(gau_output)
+    skip_output = Dropout(skip_drop_rate)(skip_output)
+
     residual_output = Conv1D(num_filters, filter_size, padding='same', name='Residual_Conv1D'+suffix)(gau_output)
+    residual_output = Dropout(res_drop_rate)(residual_output)
     residual_output = Add(name='Residual_Connection'+suffix)([input[0], residual_output])
 
     return residual_output, skip_output
@@ -293,6 +303,7 @@ def output_dense(input, config):
     select_middle = config.get('OUTPUT_DENSE.select_middle')
     output_bins = config.get('DATASET.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
+    dense_drop_rate = config.get('MODEL.dense_drop_rate')
 
     if type(num_filters) is not list:
         num_filters = [num_filters]
@@ -306,8 +317,13 @@ def output_dense(input, config):
 
     for i, num_filter in enumerate(num_filters):
         output = Dense(num_filter, activation='relu', name='Embeddings_%d'%i)(output)
+        output = Dropout(dense_drop_rate)(output)
     
-    output = Dense(output_bins, activation='softmax', name='Output')(output)
+    if config.get('MODEL.loss') == 'angular_margin':
+        dense = config.get('loss').get_dense()
+        output = dense(name='Output')(output)
+    else:
+        output = Dense(output_bins, activation='softmax', name='Output')(output)
     return output
 
 

@@ -64,7 +64,6 @@ class DataGenerator:
                         train_ids.append((id, time))
                 self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
 
-        print('done')
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
 
@@ -90,15 +89,14 @@ class DataGenerator:
 
         sample = None
         if self.data_type == 'mel':
-            sample = data['data/' + speaker][sample_id][:,start_id * 128:(start_id + offset) * 128]
+            sample = data['data/' + speaker][sample_id][start_id * 128:(start_id + offset) * 128]
+
             sample = sample.reshape((offset, 128))
         else:
-            sample = data['data/' + speaker][sample_id][:,start_id:start_id + offset]
+            sample = data['data/' + speaker][sample_id][start_id:start_id + offset]
 
         next_timestep = sample[-1]
-        print(next_timestep.shape)
         sample = sample[:-1]
-        print(sample.shape)
 
         if self.data_type == 'ulaw':
             sample = sample.reshape(sample.shape[0], 1)
@@ -148,8 +146,8 @@ class DataGenerator:
                         else:
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
                             self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                    except Exception as e:
-                        print(e)
+                    except:
+                        pass
         elif batch_type == 'zeros':
             # generate zero samples (inspired by karpathys blog for testing)
             empty_timesteps = np.zeros((batch_size, 256))

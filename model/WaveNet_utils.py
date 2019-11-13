@@ -181,9 +181,9 @@ def get_input(config):
     input = None
     if data_type == 'original':
         input = [Input(shape=(receptive_field, 1), name='Input')]
-    if data_type == 'ulaw':
+    elif data_type == 'ulaw':
         input = [Input(shape=(receptive_field, 256), name='U-Law_Input')]
-    if data_type == 'mel':
+    elif data_type == 'mel':
         input = [Input(shape=(receptive_field, 128), name='Mel_Input')]
     
     if config.get('DATASET.condition') == 'speaker':
@@ -196,7 +196,7 @@ def get_input(config):
 # Residual Blocks
 # ===============
 
-def resblock_cond(input, dilation_rate, config):
+def resblock_cond(input, dilation_rate, reverse, config):
     dilation_base = config.get('MODEL.dilation_base')
     filter_size = config.get('MODEL.filter_size')
     num_filters = config.get('MODEL.num_filters')
@@ -206,6 +206,8 @@ def resblock_cond(input, dilation_rate, config):
     skip_drop_rate = config.get('MODEL.skip_drop_rate')
 
     suffix = '-dilation%d'%dilation_rate
+    if reverse:
+        suffix += '-reverse'
 
     filter_conv_output = CausalConv1D(num_filters, filter_size,
                                  dilation_rate=dilation_base ** dilation_rate, causal=causal,
@@ -239,7 +241,7 @@ def resblock_cond(input, dilation_rate, config):
     return residual_output, skip_output
 
 
-def resblock_orig(input, dilation_rate, config):
+def resblock_orig(input, dilation_rate, reverse, config):
     dilation_base = config.get('MODEL.dilation_base')
     filter_size = config.get('MODEL.filter_size')
     num_filters = config.get('MODEL.num_filters')
@@ -248,6 +250,8 @@ def resblock_orig(input, dilation_rate, config):
     skip_drop_rate = config.get('MODEL.skip_drop_rate')
 
     suffix = '-dilation%d'%dilation_rate
+    if reverse:
+        suffix += '-reverse'
 
     filter_output = CausalConv1D(num_filters, filter_size,
                                  dilation_rate=dilation_base ** dilation_rate, activation='tanh', causal=causal,
@@ -274,19 +278,20 @@ def resblock_orig(input, dilation_rate, config):
 # Connection Blocks
 # =================
 
-def use_skip_connections(residual_connection, skip_connections, config):
+def use_skip_connections(residual_connections, skip_connections, config):
+    output = Add(name='Add_Residual_Connections')(skip_connections)
+    output = Activation('relu')(output)
+    return output
+
+
+def use_residual_connections(residual_connections, skip_connections, config):
     output = Add(name='Add_Skip_Connections')(skip_connections)
     output = Activation('relu')(output)
     return output
 
 
-def use_residual_connections(residual_connection, skip_connections, config):
-    output = Activation('relu')(residual_connection)
-    return output
-
-
-def use_both_connections(residual_connection, skip_connections, config):
-    skip_connections.append(residual_connection)
+def use_both_connections(residual_connections, skip_connections, config):
+    skip_connections.extend(residual_connections)
     output = Add(name='Add_Skip_&_Residual_Connections')(skip_connections)
     output = Activation('relu')(output)
     return output

@@ -65,7 +65,6 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
                 with h5py.File(h5_path + name, 'a') as f:
                     x_new = function(x, fs)
                     length = len(x_new)
-                    
                     total_length = 1
                     for dim in list(x_new.shape):
                         total_length *= dim

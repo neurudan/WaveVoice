@@ -12,6 +12,7 @@
         "num_filters":      128,
 
         "causal":           true,
+        "reverse":          true,
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
@@ -19,9 +20,9 @@
 
         "loss":             "angular_margin",
 
-        "res_drop_rate":    0.1,
-        "skip_drop_rate":   0.1,
-        "dense_drop_rate":  0.1
+        "res_drop_rate":    0.2,
+        "skip_drop_rate":   0.2,
+        "dense_drop_rate":  0.2
     },
 
     "DATASET": {
@@ -35,7 +36,7 @@
         "batch_type":       "real",
         "val_set":          0.2,
         "queue_size":       50,
-        "batch_size":       100
+        "batch_size":       10
     },
 
     "OPTIMIZER": {

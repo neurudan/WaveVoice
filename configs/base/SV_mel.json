@@ -5,14 +5,14 @@
     },
 
     "MODEL": {
-        "dilation_base":    2,
-        "dilation_depth":   5,
+        "dilation_base":    3,
+        "dilation_depth":   4,
 
-        "filter_size":      2,
+        "filter_size":      3,
         "num_filters":      128,
 
-        "causal":           true,
-        "reverse":          true,
+        "causal":           false,
+        "reverse":          false,
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
@@ -45,7 +45,7 @@
     },
 
     "OUTPUT_DENSE": {
-        "select_middle":    false,
+        "select_middle":    true,
         "num_filters":      [128]
     },
 
@@ -64,8 +64,8 @@
     },
 
     "ANGULAR_LOSS": {
-        "margin_cosface":   0.9,
-        "margin_arcface":   0.0,
+        "margin_cosface":   0.0,
+        "margin_arcface":   0.01,
         "margin_sphereface":1.0,
         "scale":            10.0
     }

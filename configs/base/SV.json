@@ -11,11 +11,18 @@
         "filter_size":      3,
         "num_filters":      64,
 
-        "causal":           false,
+        "causal":           true,
+        "reverse":          true,
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
-        "output_block":     "output_dense"
+        "output_block":     "output_dense",
+
+        "loss":             "angular_margin",
+
+        "res_drop_rate":    0.2,
+        "skip_drop_rate":   0.2,
+        "dense_drop_rate":  0.2
     },
 
     "DATASET": {
@@ -54,5 +61,12 @@
     "OUTPUT_POOL_DOWN": {
         "down_factor":      [9, 9, 9, 9],
         "filter_size":      [1, 1, 1, 1]
+    },
+
+    "ANGULAR_LOSS": {
+        "margin_cosface":   0.9,
+        "margin_arcface":   0.0,
+        "margin_sphereface":1.0,
+        "scale":            10.0
     }
 }

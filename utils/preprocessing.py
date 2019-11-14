@@ -139,7 +139,9 @@ def prepare_vctk_dict(vctk_path):
 
 def setup_datasets():
     global functions
-    bases = [[prepare_timit_dict, '/data/Datasets/TIMIT/', 'timit_']]
+    bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'],
+             [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'],
+             [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
 
     for [f, base, name] in bases:
         dest = base + name

@@ -6,4 +6,5 @@ configs/*
 !configs/sweep/default.json
 !configs/base/*
 
+mlruns
 *__pycache__*

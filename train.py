@@ -114,7 +114,11 @@ def train(config_name=None):
     run_name = update_run_name(config)
 
     # Start MlFlow log
+    mlflow.set_tracking_uri("databricks")
+    mlflow.set_experiment("/Users/neurudan@students.zhaw.ch/test")
+    
     mlflow.start_run(run_name=run_name)
+    config.set_mlflow_params()
     mlflow.keras.autolog()
 
     # Train Model
@@ -152,12 +156,9 @@ if __name__ == '__main__':
         if project == None:
             project = args.sweep_config.split('.')[0]
 
-        mlflow.set_tracking_uri("databricks")
-        mlflow.set_experiment("/Users/neurudan@students.zhaw.ch/test")
-
         os.environ['WANDB_ENTITY'] = 'bratwolf'
         os.environ['WANDB_AGENT_REPORT_INTERVAL'] = '0'
-        os.environ['WANDB_PROJECT'] = args.project
+        os.environ['WANDB_PROJECT'] = project
 
         if args.sweep:
             path = get_sweep_config_path(args.sweep_config)

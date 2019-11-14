@@ -1,5 +1,6 @@
 import wandb
 import json
+import mlflow
 
 from utils.path_handler import get_base_config_path
 from utils.data_handler import get_speaker_list
@@ -17,6 +18,19 @@ class Config():
 
         dic = json.load(open(path, 'r'))
         wandb.config.update(dic)
+
+    def set_mlflow_params(self):
+        keys = ['TRAINING', 'MODEL', 'DATASET', 'OUTPUT_DENSE', 'OUTPUT_CONV_ORIG', 'ANGULAR_LOSS']
+
+        for key in keys:
+            dic = wandb.config.get(key)
+            sub_keys = list(dic.keys())
+            if key in self.store:
+                sub_keys.extend(list(self.store[key].keys()))
+            
+            for sub_key in sub_keys:
+                val = self.get(key + '.' + sub_key)
+                mlflow.log_param(key + '.' + sub_key, val)
 
     def get(self, key):
         try:

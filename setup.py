@@ -59,7 +59,7 @@ if __name__ == '__main__':
         update_and_persist_config(None, new_config)
 
         os.system('export MLFLOW_TRACKING_URI=databricks')
-        subprocess.run('mlflow experiments create -n ' + credentials['mlflow_experiment_base'] + 'test', shell=True, stderr=subprocess.PIPE)
+        subprocess.run('mlflow experiments create -n ' + credentials['mlflow_experiment_base'] + project_name, shell=True, stderr=subprocess.PIPE)
 
         path = get_sweep_config_path(project_name + '.json')
         sweep_config = json.load(open(path, 'r'))

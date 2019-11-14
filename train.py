@@ -1,5 +1,5 @@
 from utils.data_handler import DataGenerator
-from utils.path_handler import get_sweep_config_path
+from utils.path_handler import get_sweep_config_path, get_config_path
 from utils.config_handler import Config
 from utils.preprocessing import setup_datasets 
 
@@ -15,6 +15,9 @@ import wandb
 import json
 import os
 import argparse
+
+import mlflow
+import mlflow.keras
 
 
 def update_run_name(config):
@@ -45,6 +48,7 @@ def update_run_name(config):
         if run.id == run_id:
             run.name = run_name
             run.update()
+    return run_name
 
 def store_required_variables(config):
     dilation_base = config.get('MODEL.dilation_base')
@@ -107,7 +111,11 @@ def train(config_name=None):
                   loss=loss,
                   metrics=['accuracy'])
 
-    update_run_name(config)
+    run_name = update_run_name(config)
+
+    # Start MlFlow log
+    mlflow.start_run(run_name=run_name)
+    mlflow.keras.autolog()
 
     # Train Model
     model.fit_generator(train_generator,
@@ -119,11 +127,13 @@ def train(config_name=None):
 
     # Terminate enqueueing process
     data_generator.terminate_enqueuer()
+    mlflow.end_run(status='FINISHED')
+
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training for the WaveVoice Project')
-    parser.add_argument('--project', '-p', dest='project', default='SV',
+    parser.add_argument('--project', '-p', dest='project', default=None,
                         help='The name of the project on wandb. (define first using "wandb init")')
     parser.add_argument('--sweep', '-s', dest='sweep', action='store_true',
                         help='If passed, uses the wandb sweep function for gridsearch.')
@@ -138,6 +148,13 @@ if __name__ == '__main__':
     if args.setup:
         setup_datasets()
     else:
+        project = args.project
+        if project == None:
+            project = args.sweep_config.split('.')[0]
+
+        mlflow.set_tracking_uri("databricks")
+        mlflow.set_experiment("/Users/neurudan@students.zhaw.ch/test")
+
         os.environ['WANDB_ENTITY'] = 'bratwolf'
         os.environ['WANDB_AGENT_REPORT_INTERVAL'] = '0'
         os.environ['WANDB_PROJECT'] = args.project

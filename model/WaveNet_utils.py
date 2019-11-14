@@ -353,36 +353,6 @@ def output_conv_orig(input, config):
                     output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)
     return output
 
-# This is Bullshit
-
-def output_conv_down(input, config):
-    filter_sizes = config.get('OUTPUT_CONV_DOWN.filter_size')
-    output_bins = config.get('DATASET.output_bins')
-
-    output = input
-    for i, filter_size in enumerate(filter_sizes):
-        output = Conv1D(output_bins, filter_size, strides=filter_size, activation='relu',
-                        name='Conv1D_Downsample_%d'%i)(output)
-    
-    output = Dense(output_bins, activation='softmax', name='Output')(output)
-    return output
-
-
-def output_pool_down(input, config):
-    downsample_factors = config.get('OUTPUT_POOL_DOWN.downsample_factor')
-    filter_sizes = config.get('OUTPUT_POOL_DOWN.filter_size')
-    output_bins = config.get('DATASET.output_bins')
-
-    output = input
-    for i, [filter_size, downsample_factor] in enumerate(zip(filter_sizes, downsample_factors)):
-        output = Conv1D(output_bins, filter_size,
-                        padding='same', activation='relu', name='Conv1D_Downsample_%d'%i)(output)
-        output = AveragePooling1D(downsample_factor,
-                                  padding='same', name='AvgPool_Downsample_%d'%i)(output)
-                                  
-    output = Dense(output_bins, activation='softmax', name='Output')(output)
-    return output
-
 
 # =========
 # Constants
@@ -398,6 +368,4 @@ CONNECTION_BLOCKS = {'skip': use_skip_connections,
 
 
 OUTPUT_BLOCKS = {'output_dense': output_dense,
-                 'output_conv_orig': output_conv_orig,
-                 'output_conv_down': output_conv_down,
-                 'output_pool_down': output_pool_down}
+                 'output_conv_orig': output_conv_orig}

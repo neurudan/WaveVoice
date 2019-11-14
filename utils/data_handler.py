@@ -114,12 +114,11 @@ class DataGenerator:
         samples = []
         if from_all_speakers:
             for i in range(self.num_speakers):
-                speaker = self.speakers[i]
-                samples.append(self.__draw_from_speaker__(speaker, receptive_field, dset, data))
+                samples.append(self.__draw_from_speaker__(self.speakers[i], receptive_field, dset, data))
         else:
-            for _ in range(batch_size):
-                speaker = self.speakers[np.argmax(np.random.uniform(size=self.num_speakers))]
-                samples.append(self.__draw_from_speaker__(speaker, receptive_field, dset, data))
+            speaker_ids = np.random.randint(self.num_speakers, size=batch_size)
+            for speaker_id in speaker_ids:
+                samples.append(self.__draw_from_speaker__(self.speakers[speaker_id], receptive_field, dset, data))
 
         samples, timesteps, speaker_samples = zip(*samples)
         samples = np.array(list(samples), dtype='float32')

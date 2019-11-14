@@ -11,8 +11,8 @@
         "filter_size":      3,
         "num_filters":      64,
 
-        "causal":           true,
-        "reverse":          true,
+        "causal":           false,
+        "reverse":          false,
 
         "residual_block":   "resblock_orig",
         "connection_block": "skip",
@@ -54,17 +54,8 @@
         "filter_size":      [1, 1]
     },
 
-    "OUTPUT_CONV_DOWN": {
-        "filter_size":      [9, 9, 9, 9]
-    },
-
-    "OUTPUT_POOL_DOWN": {
-        "down_factor":      [9, 9, 9, 9],
-        "filter_size":      [1, 1, 1, 1]
-    },
-
     "ANGULAR_LOSS": {
-        "margin_cosface":   0.9,
+        "margin_cosface":   0.0,
         "margin_arcface":   0.0,
         "margin_sphereface":1.0,
         "scale":            10.0

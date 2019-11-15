@@ -6,7 +6,7 @@ import tensorflow as tf
 
 class AngularLoss:
     def __init__(self, config):
-        self.output_bins = config.get('DATASET.output_bins')
+        self.output_bins = config.get('MODEL.output_bins')
         self.margin_cosface = config.get('ANGULAR_LOSS.margin_cosface')
         self.margin_arcface = config.get('ANGULAR_LOSS.margin_arcface')
         self.margin_sphereface = config.get('ANGULAR_LOSS.margin_sphereface')

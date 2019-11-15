@@ -331,7 +331,7 @@ def output_dense(input, config):
     return output
 
 
-def output_conv_orig(input, config):
+def output_conv(input, config):
     embedding_size = config.get('MODEL.embedding_size')
     select_middle = config.get('MODEL.select_middle')
     output_bins = config.get('MODEL.output_bins')
@@ -364,4 +364,4 @@ CONNECTION_BLOCKS = {'skip': use_skip_connections,
 
 
 OUTPUT_BLOCKS = {'output_dense': output_dense,
-                 'output_conv_orig': output_conv_orig}
+                 'output_conv': output_conv}

@@ -304,9 +304,9 @@ def use_both_connections(residual_connections, skip_connections, config):
 # This should be the same as output_conv_orig
 
 def output_dense(input, config):
-    num_filters = config.get('OUTPUT_DENSE.num_filters')
-    select_middle = config.get('OUTPUT_DENSE.select_middle')
-    output_bins = config.get('DATASET.output_bins')
+    embedding_size = config.get('MODEL.embedding_size')
+    select_middle = config.get('MODEL.select_middle')
+    output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
     dense_drop_rate = config.get('MODEL.dense_drop_rate')
 
@@ -320,9 +320,8 @@ def output_dense(input, config):
     output = Lambda(lambda x: x[:,bin_id,:],
                     output_shape=(input._keras_shape[-1],), name='Select_single_bin')(input)
 
-    for i, num_filter in enumerate(num_filters):
-        output = Dense(num_filter, activation='relu', name='Embeddings_%d'%i)(output)
-        output = Dropout(dense_drop_rate)(output)
+    output = Dense(embedding_size, activation='relu', name='Embeddings')(output)
+    output = Dropout(dense_drop_rate)(output)
     
     if config.get('MODEL.loss') == 'angular_margin':
         dense = config.get('loss').get_dense()
@@ -333,24 +332,21 @@ def output_dense(input, config):
 
 
 def output_conv_orig(input, config):
-    filter_size = config.get('OUTPUT_CONV_ORIG.filter_size')
-    select_middle = config.get('OUTPUT_CONV_ORIG.select_middle')
-    output_bins = config.get('DATASET.output_bins')
+    embedding_size = config.get('MODEL.embedding_size')
+    select_middle = config.get('MODEL.select_middle')
+    output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
+    label = config.get('DATASET.label')
 
-    bin_id = -1
-    if select_middle:
-        bin_id = int((receptive_field - 1) / 2)
+    output = Conv1D(embedding_size, 1, activation='relu', padding='same', name='Embeddings')(input)
+    output = Conv1D(output_bins, 1, activation='softmax', padding='same', name='Conv1D_Output')(output)
 
-
-    output = Conv1D(output_bins, filter_size[0],
-                    activation='relu', padding='same', name='Embeddings')(input)
-
-    output = Conv1D(output_bins, filter_size[1],
-                    activation='softmax', padding='same', name='Conv1D_Output')(output)
-
-    output = Lambda(lambda x: x[:,bin_id,:],
-                    output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)
+    if label == 'single_timestep':
+        bin_id = -1
+        if select_middle:
+            bin_id = int((receptive_field - 1) / 2)
+        output = Lambda(lambda x: x[:,bin_id,:],
+                        output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)
     return output
 
 

@@ -4,6 +4,7 @@
         "steps_per_epoch":  100
     },
 
+
     "MODEL": {
         "dilation_base":    3,
         "dilation_depth":   8,
@@ -22,8 +23,12 @@
 
         "res_drop_rate":    0.2,
         "skip_drop_rate":   0.2,
-        "dense_drop_rate":  0.2
+        "dense_drop_rate":  0.2,
+
+        "select_middle":    true,
+        "embedding_size":   128
     },
+    
 
     "DATASET": {
         "base":             "timit",
@@ -39,21 +44,13 @@
         "batch_size":       10
     },
 
+
     "OPTIMIZER": {
         "type":             "adam",
         "lr":               3e-4
     },
 
-    "OUTPUT_DENSE": {
-        "select_middle":    true,
-        "num_filters":      [128]
-    },
-
-    "OUTPUT_CONV_ORIG": {
-        "select_middle":    true,
-        "filter_size":      [1, 1]
-    },
-
+    
     "ANGULAR_LOSS": {
         "margin_cosface":   0.0,
         "margin_arcface":   0.0,

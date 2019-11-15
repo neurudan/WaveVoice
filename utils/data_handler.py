@@ -40,10 +40,10 @@ class DataGenerator:
         self.speakers = get_speaker_list(config)
         self.num_speakers = len(self.speakers)
 
-        if self.label == 'timesteps':
-            config.set('DATASET.output_bins', 256)
+        if self.label in ['single_timestep', 'all_timesteps']:
+            config.set('MODEL.output_bins', 256)
         elif self.label == 'speaker':
-            config.set('DATASET.output_bins', self.num_speakers)
+            config.set('MODEL.output_bins', self.num_speakers)
         config.set('DATASET.num_speakers', self.num_speakers)
 
         self.statistics = {}
@@ -90,12 +90,23 @@ class DataGenerator:
         sample = None
         if self.data_type == 'mel':
             sample = data['data/' + speaker][sample_id][start_id * 128:(start_id + offset) * 128]
-
             sample = sample.reshape((offset, 128))
         else:
             sample = data['data/' + speaker][sample_id][start_id:start_id + offset]
 
-        next_timestep = sample[-1]
+        next_timestep = None
+        if self.label == 'single_timestep':
+            next_timestep = sample[-1]
+            temp = self.empty_timestep.copy()
+            temp[next_timestep] = 1
+            next_timestep = temp
+        elif self.label == 'all_timesteps':
+            next_timestep = sample[1:]
+            next_timestep = next_timestep.reshape(next_timestep.shape[0], 1)
+            temp = self.empty_sample.copy()
+            temp[next_timestep] = 1
+            next_timestep = temp
+
         sample = sample[:-1]
 
         if self.data_type == 'ulaw':
@@ -104,9 +115,6 @@ class DataGenerator:
             temp[sample] = 1
             sample = temp
 
-            temp = self.empty_timestep.copy()
-            temp[next_timestep] = 1
-            next_timestep = temp
         return [sample, next_timestep, speaker_sample]
 
 
@@ -159,28 +167,24 @@ class DataGenerator:
             elif self.data_type == 'mel':
                 empty_samples = np.zeros((batch_size, receptive_field, 128))
             while True:
+                result = None
                 if self.label == 'speaker':
-                    speaker_samples = empty_speaker_samples.copy()
-                    for i in range(batch_size):
-                        speaker_samples[i, np.random.randint(self.num_speakers)] = 1
-                    try:
-                        if self.train_queue.qsize() > self.val_queue.qsize():
-                            self.val_queue.put([empty_samples, empty_timesteps, speaker_samples], timeout=0.5)
-                        else:
-                            self.train_queue.put([empty_samples, empty_timesteps, speaker_samples], timeout=0.5)
-                    except:
-                        pass
-                elif self.label == 'timesteps':
-                    timesteps = empty_timesteps.copy()
-                    for i in range(batch_size):
-                        timesteps[i, np.random.randint(256)] = 1
-                    try:
-                        if self.train_queue.qsize() > self.val_queue.qsize():
-                            self.val_queue.put([empty_samples, empty_timesteps, speaker_samples], timeout=0.5)
-                        else:
-                            self.train_queue.put([empty_samples, empty_timesteps, speaker_samples], timeout=0.5)
-                    except:
-                        pass
+                    speaker_samples = np.eye(self.num_speakers)[np.random.randint(self.num_speakers, size=(batch_size, self.num_speakers))]
+                    result = [empty_samples, empty_timesteps, speaker_samples]
+                elif self.label == 'single_timestep':
+                    timesteps = np.eye(256)[np.random.randint(256, size=(batch_size, 256))]
+                    result = [empty_samples, timesteps, empty_speaker_samples]
+                elif self.label == 'all_timesteps':
+                    timesteps = np.eye(256)[np.random.randint(256, size=(batch_size, receptive_field, 256))]
+                    result = [empty_samples, timesteps, empty_speaker_samples]
+
+                try:
+                    if self.train_queue.qsize() > self.val_queue.qsize():
+                        self.val_queue.put(result, timeout=0.5)
+                    else:
+                        self.train_queue.put(result, timeout=0.5)
+                except:
+                    pass
         elif batch_type == 'overfit':
             # generates a single batch and always yields this batch to overfit on it (inspired by karpathys blog for testing)
             samples_o, timesteps_o, speaker_samples_o = None, None, None

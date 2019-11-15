@@ -20,7 +20,7 @@ class Config():
         wandb.config.update(dic)
 
     def set_mlflow_params(self):
-        keys = ['TRAINING', 'MODEL', 'DATASET', 'OUTPUT_DENSE', 'OUTPUT_CONV_ORIG', 'ANGULAR_LOSS']
+        keys = ['TRAINING', 'MODEL', 'DATASET', 'ANGULAR_LOSS']
 
         for key in keys:
             dic = wandb.config.get(key)

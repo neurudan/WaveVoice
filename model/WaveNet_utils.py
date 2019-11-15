@@ -341,7 +341,7 @@ def output_conv(input, config):
     output = Conv1D(embedding_size, 1, activation='relu', padding='same', name='Embeddings')(input)
     output = Conv1D(output_bins, 1, activation='softmax', padding='same', name='Conv1D_Output')(output)
 
-    if label == 'single_timestep':
+    if label != 'all_timesteps':
         bin_id = -1
         if select_middle:
             bin_id = int((receptive_field - 1) / 2)

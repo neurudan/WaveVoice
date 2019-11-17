@@ -52,14 +52,19 @@ if __name__ == '__main__':
         os.environ['WANDB_PROJECT'] = project_name.lower()
 
         # Log in MlFlow and create experiment if not existing
-        config = DatabricksConfig.empty()
-        new_config = DatabricksConfig.from_password(credentials['mlflow_host'], 
-                                                    credentials['mlflow_username'], 
-                                                    credentials['mlflow_password'])
-        update_and_persist_config(None, new_config)
+        path = get_config_path() + 'global.json'
+        global_settings = json.load(open(path, 'r'))
 
-        os.system('export MLFLOW_TRACKING_URI=databricks')
-        subprocess.run('mlflow experiments create -n ' + credentials['mlflow_experiment_base'] + project_name, shell=True, stderr=subprocess.PIPE)
+        if global_settings['mlflow']:
+            config = DatabricksConfig.empty()
+            new_config = DatabricksConfig.from_password(credentials['mlflow_host'], 
+                                                        credentials['mlflow_username'], 
+                                                        credentials['mlflow_password'])
+            update_and_persist_config(None, new_config)
+
+            os.system('export MLFLOW_TRACKING_URI=databricks')
+            subprocess.run('mlflow experiments create -n ' + credentials['mlflow_experiment_base'] + project_name, shell=True, stderr=subprocess.PIPE)
+
 
         path = get_sweep_config_path(project_name + '.json')
         sweep_config = json.load(open(path, 'r'))

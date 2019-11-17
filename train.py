@@ -76,7 +76,7 @@ def setup_optimizer(config):
     return optimizers[config.get('OPTIMIZER.type')]
 
 
-def train(config_name=None):
+def train(config_name=None, project_name=None):
     config = Config(config_name)
 
     num_epochs = config.get('TRAINING.num_epochs')
@@ -114,12 +114,16 @@ def train(config_name=None):
     run_name = update_run_name(config)
 
     # Start MlFlow log
-    mlflow.set_tracking_uri("databricks")
-    mlflow.set_experiment("/Users/neurudan@students.zhaw.ch/test")
-    
-    mlflow.start_run(run_name=run_name)
-    config.set_mlflow_params()
-    mlflow.keras.autolog()
+    path = get_config_path() + 'global.json'
+    global_settings = json.load(open(path, 'r'))
+
+    if global_settings['mlflow']:
+        mlflow.set_tracking_uri("databricks")
+        mlflow.set_experiment("/Users/neurudan@students.zhaw.ch/" + project_name)
+        
+        mlflow.start_run(run_name=run_name)
+        config.set_mlflow_params()
+        mlflow.keras.autolog()
 
     # Train Model
     model.fit_generator(train_generator,

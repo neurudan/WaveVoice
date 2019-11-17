@@ -5,6 +5,7 @@ wandb
 configs/*
 !*.gitkeep
 !configs/base/*
+!configs/global.json
 
 mlruns
 *__pycache__*

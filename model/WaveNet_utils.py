@@ -310,9 +310,6 @@ def output_dense(input, config):
     receptive_field = config.get('MODEL.receptive_field')
     dense_drop_rate = config.get('MODEL.dense_drop_rate')
 
-    if type(num_filters) is not list:
-        num_filters = [num_filters]
-
     bin_id = -1
     if select_middle:
         bin_id = int((receptive_field - 1) / 2)

@@ -135,7 +135,8 @@ def train(config_name=None, project_name=None):
 
     # Terminate enqueueing process
     data_generator.terminate_enqueuer()
-    mlflow.end_run(status='FINISHED')
+    if global_settings['mlflow']:
+        mlflow.end_run(status='FINISHED')
 
 
 

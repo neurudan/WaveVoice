@@ -1,6 +1,7 @@
 from utils.path_handler import get_speaker_list_files, get_dataset_file
 
 from multiprocessing import Process, Queue
+from tqdm import tqdm
 
 import numpy as np
 import h5py
@@ -68,7 +69,7 @@ class DataGenerator:
                             train_ids.append((id, 0, time))
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
             else:
-                for speaker in self.speakers:
+                for speaker in tqdm(self.speakers, ncols=100, ascii=True, desc='build speaker statistics'):
                     train_ids = []
                     val_ids = []
                     for i, time in enumerate(data['statistics/'+speaker][:]):

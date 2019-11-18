@@ -100,7 +100,8 @@ class DataGenerator:
         
         temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
         sample_id = ids[temp_id]
-
+        print(times[temp_id])
+        print(offsets[temp_id])
         start_id = np.random.randint(times[temp_id] - receptive_field - 1) + offsets[temp_id]
         offset = receptive_field + 1
 

@@ -80,6 +80,8 @@ class DataGenerator:
                         elif val_part == 'after':
                             val_ids.append((i, time - val_time, val_time))
                             train_ids.append((i, 0, time - val_time))
+                        
+                    self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
@@ -100,8 +102,7 @@ class DataGenerator:
         
         temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
         sample_id = ids[temp_id]
-        print(times[temp_id])
-        print(offsets[temp_id])
+        
         start_id = np.random.randint(times[temp_id] - receptive_field - 1) + offsets[temp_id]
         offset = receptive_field + 1
 

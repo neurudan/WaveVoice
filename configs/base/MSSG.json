@@ -11,6 +11,7 @@
 
         "filter_size":      2,
         "num_filters":      256,
+        "embedding_size":   128,
 
         "causal":           true,
         "reverse":          false,
@@ -23,10 +24,7 @@
 
         "res_drop_rate":    0.2,
         "skip_drop_rate":   0.2,
-        "dense_drop_rate":  0.2,
-
-        "select_middle":    false,
-        "embedding_size":   128
+        "dense_drop_rate":  0.2
     },
 
 
@@ -39,6 +37,8 @@
 
         "data_type":        "ulaw",
         "batch_type":       "real",
+        "val_part":         "before",
+        
         "val_set":          0.2,
         "queue_size":       50,
         "batch_size":       10

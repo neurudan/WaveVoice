@@ -305,13 +305,13 @@ def use_both_connections(residual_connections, skip_connections, config):
 
 def output_dense(input, config):
     embedding_size = config.get('MODEL.embedding_size')
-    select_middle = config.get('MODEL.select_middle')
+    causal = config.get('MODEL.causal')
     output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
     dense_drop_rate = config.get('MODEL.dense_drop_rate')
 
     bin_id = -1
-    if select_middle:
+    if not causal:
         bin_id = int((receptive_field - 1) / 2)
 
     output = Lambda(lambda x: x[:,bin_id,:],
@@ -330,7 +330,7 @@ def output_dense(input, config):
 
 def output_conv(input, config):
     embedding_size = config.get('MODEL.embedding_size')
-    select_middle = config.get('MODEL.select_middle')
+    causal = config.get('MODEL.causal')
     output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
     label = config.get('DATASET.label')
@@ -340,7 +340,7 @@ def output_conv(input, config):
 
     if label != 'all_timesteps':
         bin_id = -1
-        if select_middle:
+        if not causal:
             bin_id = int((receptive_field - 1) / 2)
         output = Lambda(lambda x: x[:,bin_id,:],
                         output_shape=(output._keras_shape[-1],), name='Select_single_bin')(output)

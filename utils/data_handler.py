@@ -36,6 +36,8 @@ class DataGenerator:
         self.condition = config.get('DATASET.condition')
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
+        val_part = config.get('DATASET.val_part')
+
 
         self.speakers = get_speaker_list(config)
         self.num_speakers = len(self.speakers)
@@ -47,22 +49,36 @@ class DataGenerator:
         config.set('DATASET.num_speakers', self.num_speakers)
 
         self.statistics = {}
+        
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-            for speaker in self.speakers:
-                times = data['statistics/'+speaker][:]
-                id_times = list(zip(np.arange(len(times)), times))
-                id_times.sort(key=lambda x: x[1])
-                total_time = np.sum(times)
-                train_ids = []
-                val_time = 0
-                val_ids = []
-                for id, time in id_times:
-                    if time + val_time < total_time * val_set:
-                        val_ids.append((id, time))
-                        val_time += time
-                    else:
-                        train_ids.append((id, time))
-                self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
+            if val_part == 'overall':
+                for speaker in self.speakers:
+                    times = data['statistics/'+speaker][:]
+                    id_times = list(zip(np.arange(len(times)), times))
+                    id_times.sort(key=lambda x: x[1])
+                    total_time = np.sum(times)
+                    train_ids = []
+                    val_time = 0
+                    val_ids = []
+                    for id, time in id_times:
+                        if time + val_time < total_time * val_set:
+                            val_ids.append((id, 0, time))
+                            val_time += time
+                        else:
+                            train_ids.append((id, 0, time))
+                    self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
+            else:
+                for speaker in self.speakers:
+                    train_ids = []
+                    val_ids = []
+                    for i, time in enumerate(data['statistics/'+speaker][:]):
+                        val_time = int(time * val_set)
+                        if val_part == 'before':
+                            val_ids.append((i, 0, val_time))
+                            train_ids.append((i, val_time, time - val_time))
+                        elif val_part == 'after':
+                            val_ids.append((i, time - val_time, val_time))
+                            train_ids.append((i, 0, time - val_time))
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
@@ -79,12 +95,12 @@ class DataGenerator:
         speaker_sample = self.empty_speaker_sample.copy()
         speaker_sample[self.speakers.index(speaker)] = 1
 
-        ids, times = zip(*self.statistics[speaker][dset])
+        ids, offsets, times = zip(*self.statistics[speaker][dset])
         
         temp_id = np.argmax(np.random.uniform(size=len(times)) * times)
         sample_id = ids[temp_id]
 
-        start_id = np.random.randint(times[temp_id] - receptive_field - 1)
+        start_id = np.random.randint(times[temp_id] - receptive_field - 1) + offsets[temp_id]
         offset = receptive_field + 1
 
         sample = None

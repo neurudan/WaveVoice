@@ -94,8 +94,9 @@ def train(config_name=None, project_name=None):
     val_generator = None
     val_steps = None
     if batch_type == 'real':
+        val_set = config.get('DATASET.val_set')
         val_generator = data_generator.get_generator('val')
-        val_steps = train_steps
+        val_steps = int(train_steps * val_set / (1 - val_set))
 
 
     # Setup Optimizer

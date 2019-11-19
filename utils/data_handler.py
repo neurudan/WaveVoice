@@ -94,10 +94,15 @@ class DataGenerator:
 
 
     def test_generator(self):
+        print('test')
         receptive_field = self.config.get('MODEL.receptive_field')
+        print('test')
         num_samples = int(3 * 16000 / receptive_field)
+        print('test')
         steps = (np.arange(num_samples) + 1) * receptive_field
+        print('test')
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
+            print('test')
             for speaker in self.test_speakers:
                 for i in range(5):
                     x1 = np.split(data['data/' + speaker][i], steps) 

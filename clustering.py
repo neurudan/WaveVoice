@@ -29,8 +29,10 @@ class ClusterCallback(Callback):
             print('finito')
             try:
                 while True:
-                    samples, y = self.data_generator.__next__()
-                    embeddings = np.asarray(model.predict(samples))
+                    x1, x2, y = self.data_generator.__next__()
+                    print(y)
+                    print(x1)
+                    embeddings = np.asarray(model.predict(x1[0]))
                     print(embeddings)
                     speakers.extend(y)
                     print()

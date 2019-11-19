@@ -11,6 +11,8 @@ from keras.metrics import categorical_accuracy
 
 from wandb.keras import WandbCallback
 
+from clustering import ClusterCallback
+
 import wandb
 import json
 import os
@@ -102,8 +104,6 @@ def train(config_name=None, project_name=None):
     # Setup Optimizer
     optimizer = setup_optimizer(config)
 
-    # Setup Callback
-    wandb_cb = WandbCallback()
 
     # Setup Model
     model, loss = build_WaveNet(config)
@@ -113,6 +113,12 @@ def train(config_name=None, project_name=None):
                   metrics=['accuracy'])
 
     run_name = update_run_name(config)
+
+
+    # Setup Callback
+    wandb_cb = WandbCallback()
+    cb = ClusterCallback(config, model, data_generator.test_generator())
+
 
     # Start MlFlow log
     path = get_config_path() + 'global.json'
@@ -132,7 +138,7 @@ def train(config_name=None, project_name=None):
                         validation_data=val_generator,
                         validation_steps=val_steps,
                         epochs=num_epochs,
-                        callbacks=[wandb_cb])
+                        callbacks=[wandb_cb, cb])
 
     # Terminate enqueueing process
     data_generator.terminate_enqueuer()

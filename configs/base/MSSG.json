@@ -1,60 +1,61 @@
 {
     "TRAINING": {
-        "num_epochs":       10000,
-        "steps_per_epoch":  100
+        "num_epochs":           10000,
+        "steps_per_epoch":      100
     },
 
 
     "MODEL": {
-        "dilation_base":    2,
-        "dilation_depth":   10,
+        "dilation_base":        2,
+        "dilation_depth":       10,
 
-        "filter_size":      2,
-        "num_filters":      256,
-        "embedding_size":   128,
+        "filter_size":          2,
+        "num_filters":          256,
+        "embedding_size":       128,
 
-        "causal":           true,
-        "reverse":          false,
+        "causal":               true,
+        "reverse":              false,
 
-        "residual_block":   "resblock_cond",
-        "connection_block": "skip",
-        "output_block":     "output_dense",
+        "residual_block":       "resblock_cond",
+        "connection_block":     "skip",
+        "output_block":         "output_dense",
 
-        "loss":             "angular_margin",
+        "loss":                 "angular_margin",
 
-        "res_drop_rate":    0.2,
-        "skip_drop_rate":   0.2,
-        "dense_drop_rate":  0.2
+        "res_drop_rate":        0.2,
+        "skip_drop_rate":       0.2,
+        "dense_drop_rate":      0.2
     },
 
 
     "DATASET": {
-        "base":             "timit",
-        "speaker_list":     "timit_speakers_100_50w_50m_not_reynolds.txt",
+        "base":                 "timit",
+        "speaker_list_train":   "timit_speakers_100_50w_50m_not_reynolds.txt",
+        "speaker_list_test":    "timit_speakers_100_50w_50m_not_reynolds.txt",
 
-        "condition":        "speaker",
-        "label":            "single_timestep",
+        "condition":            "speaker",
+        "label":                "single_timestep",
 
-        "data_type":        "ulaw",
-        "batch_type":       "real",
-        "val_part":         "before",
+        "data_type":            "ulaw",
+        "batch_type":           "real",
+        "val_part":             "before",
         
-        "val_set":          0.2,
-        "queue_size":       50,
-        "batch_size":       10
+        "val_set":              0.2,
+        "queue_size":           50,
+        "batch_size":           10
     },
 
 
     "OPTIMIZER": {
-        "type":             "adam",
-        "lr":               3e-4
+        "type":                 "adam",
+        "lr":                   3e-4
     },
 
 
     "ANGULAR_LOSS": {
-        "margin_cosface":   0.9,
-        "margin_arcface":   0.0,
-        "margin_sphereface":1.0,
-        "scale":            10.0
+        "margin_cosface":       0.9,
+        "margin_arcface":       0.0,
+        "margin_sphereface":    1.0,
+        "scale":                10.0
     }
 }

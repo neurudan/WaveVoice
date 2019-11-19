@@ -9,10 +9,7 @@ import time
 import math
 
 
-def get_speaker_list(config):
-    dataset = config.get('DATASET.base')
-    speaker_list = config.get('DATASET.speaker_list')
-    
+def get_speaker_list(dataset, speaker_list):
     file_path = get_speaker_list_files(dataset)[speaker_list]
     lines = []
     with open(file_path) as f:
@@ -38,10 +35,12 @@ class DataGenerator:
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
+        speaker_list_train = config.get('DATASET.speaker_list_train')
+        speaker_list_test = config.get('DATASET.speaker_list_test')
 
-
-        self.speakers = get_speaker_list(config)
-        self.num_speakers = len(self.speakers)
+        self.train_speakers = get_speaker_list(dataset, speaker_list_train)
+        self.test_speakers = get_speaker_list(dataset, speaker_list_test)
+        self.num_speakers = len(self.train_speakers)
 
         if self.label in ['single_timestep', 'all_timesteps']:
             config.set('MODEL.output_bins', 256)
@@ -53,7 +52,7 @@ class DataGenerator:
         
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
             if val_part == 'overall':
-                for speaker in self.speakers:
+                for speaker in self.train_speakers:
                     times = data['statistics/'+speaker][:]
                     id_times = list(zip(np.arange(len(times)), times))
                     id_times.sort(key=lambda x: x[1])
@@ -69,7 +68,7 @@ class DataGenerator:
                             train_ids.append((id, 0, time))
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
             else:
-                for speaker in tqdm(self.speakers, ncols=100, ascii=True, desc='build speaker statistics'):
+                for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
                     train_ids = []
                     val_ids = []
                     for i, time in enumerate(data['statistics/'+speaker][:]):
@@ -94,9 +93,45 @@ class DataGenerator:
             self.steps_per_epoch = math.ceil(self.num_speakers / self.config.get('DATASET.batch_size'))
 
 
+    def test_generator(self):
+        receptive_field = self.config.get('MODEL.receptive_field')
+        num_samples = int(3 * 16000 / receptive_field)
+        steps = (np.arange(num_samples) + 1) * receptive_field
+        with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
+            for speaker in self.test_speakers:
+                for i in range(5):
+                    x1 = np.split(data['data/' + speaker][i], steps) 
+                    for j in range(5):
+                        if i != j:
+                            x2 = np.split(data['data/' + speaker][j], steps)
+                            yield x1, x2, 1
+
+
+    def __read_sample__(self, speaker, sample_id, start_id, receptive_field, data):
+        offset = receptive_field + 1 # To get next timestep aswell
+
+        sample = None
+        if self.data_type == 'mel':
+            sample = data['data/' + speaker][sample_id][start_id * 128:(start_id + offset) * 128]
+            sample = sample.reshape((offset, 128))
+        elif self.data_type == 'original':
+            sample = data['data/' + speaker][sample_id][start_id:start_id + offset]
+        if self.data_type == 'ulaw':
+            sample = data['data/' + speaker][sample_id][start_id:start_id + offset]
+            sample = np.eye(256)[sample]
+
+        next_timestep = None
+        if self.label == 'single_timestep':
+            next_timestep = sample[-1]
+        elif self.label == 'all_timesteps':
+            next_timestep = sample[1:]
+
+        return sample[:-1], next_timestep
+
+
     def __draw_from_speaker__(self, speaker, receptive_field, dset, data):
         speaker_sample = self.empty_speaker_sample.copy()
-        speaker_sample[self.speakers.index(speaker)] = 1
+        speaker_sample[self.train_speakers.index(speaker)] = 1
 
         ids, offsets, times = zip(*self.statistics[speaker][dset])
         
@@ -104,35 +139,7 @@ class DataGenerator:
         sample_id = ids[temp_id]
         
         start_id = np.random.randint(times[temp_id] - receptive_field - 1) + offsets[temp_id]
-        offset = receptive_field + 1
-
-        sample = None
-        if self.data_type == 'mel':
-            sample = data['data/' + speaker][sample_id][start_id * 128:(start_id + offset) * 128]
-            sample = sample.reshape((offset, 128))
-        else:
-            sample = data['data/' + speaker][sample_id][start_id:start_id + offset]
-
-        next_timestep = None
-        if self.label == 'single_timestep':
-            next_timestep = sample[-1]
-            temp = self.empty_timestep.copy()
-            temp[next_timestep] = 1
-            next_timestep = temp
-        elif self.label == 'all_timesteps':
-            next_timestep = sample[1:]
-            next_timestep = next_timestep.reshape(next_timestep.shape[0], 1)
-            temp = self.empty_sample.copy()
-            temp[next_timestep] = 1
-            next_timestep = temp
-
-        sample = sample[:-1]
-
-        if self.data_type == 'ulaw':
-            sample = sample.reshape(sample.shape[0], 1)
-            temp = self.empty_sample.copy()
-            temp[sample] = 1
-            sample = temp
+        sample, next_timestep = self.__read_sample__(speaker, sample_id, start_id, receptive_field, data)
 
         return [sample, next_timestep, speaker_sample]
 
@@ -141,17 +148,18 @@ class DataGenerator:
         samples = []
         if from_all_speakers:
             for i in range(self.num_speakers):
-                samples.append(self.__draw_from_speaker__(self.speakers[i], receptive_field, dset, data))
+                samples.append(self.__draw_from_speaker__(self.train_speakers[i], receptive_field, dset, data))
         else:
             speaker_ids = np.random.randint(self.num_speakers, size=batch_size)
             for speaker_id in speaker_ids:
-                samples.append(self.__draw_from_speaker__(self.speakers[speaker_id], receptive_field, dset, data))
+                samples.append(self.__draw_from_speaker__(self.train_speakers[speaker_id], receptive_field, dset, data))
 
         samples, timesteps, speaker_samples = zip(*samples)
         samples = np.array(list(samples), dtype='float32')
         if self.data_type == 'original':
             samples = samples.reshape(samples.shape + (1,))
         return samples, np.array(list(timesteps), dtype='float32'), np.array(list(speaker_samples), dtype='float32')
+
 
     def sample_enqueuer(self):
         batch_size = self.config.get('DATASET.batch_size')

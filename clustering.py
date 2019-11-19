@@ -18,11 +18,15 @@ class ClusterCallback(Callback):
         self.data_generator = data_generator
 
     def on_epoch_end(self, epoch, logs):
+        print('finito')
         if epoch % 1 == 0:
+            print('finito')
             y = []
             y_score = []
 
             model = Model(inputs=self.model.input, outputs=self.model.layers[-3].output)
+            
+            print('finito')
             try:
                 while True:
                     samples, y = self.data_generator.__next__()

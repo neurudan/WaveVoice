@@ -32,8 +32,9 @@ class ClusterCallback(Callback):
                     x1, x2, y = self.data_generator.__next__()
                     print(y)
                     print(x1)
-                    embeddings = np.asarray(model.predict(x1[0]))
+                    embeddings = np.asarray(model.predict(x1))
                     print(embeddings)
+                    print('ending')
                     speakers.extend(y)
                     print()
             except:

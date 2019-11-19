@@ -38,8 +38,8 @@ class DataGenerator:
         speaker_list_train = config.get('DATASET.speaker_list_train')
         speaker_list_test = config.get('DATASET.speaker_list_test')
 
-        self.train_speakers = get_speaker_list(dataset, speaker_list_train)
-        self.test_speakers = get_speaker_list(dataset, speaker_list_test)
+        self.train_speakers = get_speaker_list(self.dataset, speaker_list_train)
+        self.test_speakers = get_speaker_list(self.dataset, speaker_list_test)
         self.num_speakers = len(self.train_speakers)
 
         if self.label in ['single_timestep', 'all_timesteps']:

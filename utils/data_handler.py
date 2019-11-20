@@ -49,7 +49,8 @@ class DataGenerator:
         config.set('DATASET.num_speakers', self.num_speakers)
 
         self.statistics = {}
-        
+        self.test_statistics = {}
+
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
             if val_part == 'overall':
                 for speaker in self.train_speakers:
@@ -81,6 +82,15 @@ class DataGenerator:
                             train_ids.append((i, 0, time - val_time))
                         
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
+            for speaker in self.test_speakers:
+                speaker_data = []
+                receptive_field = self.config.get('MODEL.receptive_field')
+                for i, time in enumerate(data['statistics/'+speaker][:]):
+                    n_chunks = math.floor(time / receptive_field)
+                    end = n_chunks * receptive_field
+                    audio_name = data['audio_names/'+speaker][i]
+                    speaker_data.append((i, audio_name, end, n_chunks))
+                self.test_statistics[speaker] = speaker_data
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
@@ -94,22 +104,13 @@ class DataGenerator:
 
 
     def test_generator(self):
-        print('test')
         receptive_field = self.config.get('MODEL.receptive_field')
-        print('test')
-        num_samples = int(3 * 16000 / receptive_field)
-        print('test')
-        steps = (np.arange(num_samples) + 1) * receptive_field
-        print('test')
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-            print('test')
             for speaker in self.test_speakers:
-                for i in range(5):
-                    x1 = np.split(data['data/' + speaker][i], steps) 
-                    for j in range(5):
-                        if i != j:
-                            x2 = np.split(data['data/' + speaker][j], steps)
-                            yield x1, x2, 1
+                for (i, audio_name, end, n_chunks) in self.test_statistics[speaker]:
+                    samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
+                    samples = samples.reshape((samples.shape[0], samples.shape[1], 1))
+                    yield speaker+'/'+audio_name, samples
 
 
     def __read_sample__(self, speaker, sample_id, start_id, receptive_field, data):

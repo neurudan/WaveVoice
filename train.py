@@ -117,7 +117,7 @@ def train(config_name=None, project_name=None):
 
     # Setup Callback
     wandb_cb = WandbCallback()
-    cb = ClusterCallback(config, model, data_generator.test_generator())
+    cb = ClusterCallback(config, model, data_generator.test_generator)
 
 
     # Start MlFlow log

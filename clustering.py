@@ -9,6 +9,7 @@ from keras.models import Model
 from keras.callbacks import Callback
 
 import numpy as np
+import time
 
 
 class ClusterCallback(Callback):
@@ -18,33 +19,22 @@ class ClusterCallback(Callback):
         self.data_generator = data_generator
 
     def on_epoch_end(self, epoch, logs):
-        print('finito')
         if epoch % 1 == 0:
-            print('finito')
-            y = []
-            y_score = []
-
+            start = time.time()
+            embeddings = {}
             model = Model(inputs=self.model.input, outputs=self.model.layers[-3].output)
-            
-            print('finito')
+            gen = self.data_generator()
             try:
                 while True:
-                    x1, x2, y = self.data_generator.__next__()
-                    print(y)
-                    print(x1)
-                    embeddings = np.asarray(model.predict(x1))
-                    print(embeddings)
-                    print('ending')
-                    speakers.extend(y)
-                    print()
+                    audio_name, samples = gen.__next__()
+                    embedding = np.asarray(model.predict(np.array(samples)))
+                    embeddings[audio_name] = np.mean(embedding, axis=0)
             except:
                 pass
-            fpr, tpr, thresholds = roc_curve(y, y_score, pos_label=1)
-            eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
-            thresh = interp1d(fpr, thresholds)(eer)
+            print(time.time() - start)
 
 
-def cluster_embeddings(embeddings, set_of_true_clusters, metric='cosine', method='complete'):
+def cluster_embeddings(embeddings, metric='cosine', method='complete'):
     embeddings_distance = cdist(embeddings, embeddings, 'cosine')
     embeddings_linkage = linkage(embeddings_distance, 'complete', 'cosine')
 

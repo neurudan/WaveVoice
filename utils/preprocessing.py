@@ -59,7 +59,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
     progress_dict = audio_dict.copy()
 
     for speaker in audio_dict:
-        for i, [audio_file, name] in enumerate(audio_dict[speaker]):
+        for i, [audio_file, audio_name] in enumerate(audio_dict[speaker]):
             x, fs = librosa.core.load(audio_file, sr=16000)
             for function, name, _ in functions:
                 with h5py.File(h5_path + name, 'a') as f:
@@ -72,6 +72,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
 
                     f['data/'+speaker][i] = x_new
                     f['statistics/'+speaker][i] = length
+                    f['audio_names/'+speaker][i] = audio_name
             pbar.update(1)
         progress_dict.pop(speaker, None)
         pickle.dump(progress_dict, open(progress_file, 'wb'))
@@ -143,6 +144,9 @@ def setup_datasets():
              [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'],
              [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
 
+    #bases = [[prepare_timit_dict, '/data/Datasets/TIMIT/', 'timit_']]
+
+
     for [f, base, name] in bases:
         dest = base + name
         full_struct = base + 'full_structure.p'
@@ -167,7 +171,7 @@ def setup_datasets():
         else:
             create_h5_file(dest, dic, progress, name.replace('_', ''))
             project = get_dataset_path(name.replace('_', '')) + name
-            for _, suffix, _ in functions:
-                print('copying %s to project folder...'%(name+suffix))
-                shutil.copyfile(dest + suffix, project + suffix)
+            #for _, suffix, _ in functions:
+                #print('copying %s to project folder...'%(name+suffix))
+                #shutil.copyfile(dest + suffix, project + suffix)
             print('\n')

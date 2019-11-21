@@ -137,6 +137,7 @@ def prepare_vox1_dict(vox1_path):
                 for audio in os.listdir(vox1_path+set+speaker+'/'+video):
                     if required_extension in audio:
                         audio_files.append([vox1_path+set+speaker+'/'+video+'/'+audio, video+'/'+audio])
+            print(speaker)
             vox1_dict[speaker] = audio_files
     return vox1_dict
 

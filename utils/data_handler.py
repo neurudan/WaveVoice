@@ -123,7 +123,7 @@ class DataGenerator:
 
         self.enqueuer = Process(target=self.sample_enqueuer)
         self.enqueuer.start()
-
+id10082
         self.steps_per_epoch = config.get('TRAINING.steps_per_epoch')
         if self.config.get('DATASET.batch_type') == 'overfit':
             self.steps_per_epoch = math.ceil(self.num_speakers / self.config.get('DATASET.batch_size'))

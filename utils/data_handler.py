@@ -100,6 +100,7 @@ class DataGenerator:
                         
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
                     
+        with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
             files = []
             for (_, file1, file2) in self.test_data:
                 files.append(file1)

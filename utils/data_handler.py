@@ -109,14 +109,11 @@ class DataGenerator:
 
             receptive_field = self.config.get('MODEL.receptive_field')
             self.test_statistics = []
-
-            for speaker in data['audio_names']:
-                print(speaker)
             for f in files:
                 speaker = f.split('/')[0]
                 file_name = f.split('/')[1] + '/' + f.split('/')[2]
 
-                for i, audio_name in enumerate(data['audio_names/'+speaker][:]):
+                for i, audio_name in enumerate(data['audio_names/'+speaker]):
                     if audio_name == file_name:
                         time = data['statistics/'+speaker][i]
                         n_chunks = math.floor(time / receptive_field)

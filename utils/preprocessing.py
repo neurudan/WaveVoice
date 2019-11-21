@@ -73,6 +73,9 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
                     f['data/'+speaker][i] = x_new
                     f['statistics/'+speaker][i] = length
                     f['audio_names/'+speaker][i] = audio_name
+                    if speaker == 'id10082':
+                        print(speaker)
+                        print(f['audio_names/'+speaker][i])
             pbar.update(1)
         progress_dict.pop(speaker, None)
         pickle.dump(progress_dict, open(progress_file, 'wb'))

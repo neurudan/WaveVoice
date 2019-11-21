@@ -121,6 +121,26 @@ def prepare_vox2_dict(vox2_path):
             vox2_dict[speaker] = audio_files
     return vox2_dict
 
+
+def prepare_vox1_dict(vox1_path):
+    required_extension = '.wav'
+
+    vox1_dict = {}
+
+    if vox1_path[-1] != '/':
+        vox1_path += '/'
+
+    for set in ['wav/']:
+        for speaker in tqdm(os.listdir(vox1_path+set), ncols=100, ascii=True, desc='vox1 read '+set):
+            audio_files = []
+            for video in os.listdir(vox1_path+set+speaker):
+                for audio in os.listdir(vox1_path+set+speaker+'/'+video):
+                    if required_extension in audio:
+                        audio_files.append([vox1_path+set+speaker+'/'+video+'/'+audio, video+'/'+audio])
+            vox1_dict[speaker] = audio_files
+    return vox1_dict
+
+
 def prepare_vctk_dict(vctk_path):
     required_extension = '.wav'
 
@@ -142,6 +162,7 @@ def setup_datasets():
     global functions
     bases = [[prepare_timit_dict, '/cluster/home/neurudan/datasets/TIMIT/', 'timit_'],
              [prepare_vctk_dict, '/cluster/home/neurudan/datasets/VCTK-Corpus/', 'vctk_'],
+             [prepare_vox1_dict, '/cluster/home/neurudan/datasets/vox1/', 'vox1_'],
              [prepare_vox2_dict, '/cluster/home/neurudan/datasets/vox2/', 'vox2_']]
 
     #bases = [[prepare_timit_dict, '/data/Datasets/TIMIT/', 'timit_']]

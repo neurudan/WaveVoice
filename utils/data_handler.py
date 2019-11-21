@@ -109,7 +109,7 @@ class DataGenerator:
 
             receptive_field = self.config.get('MODEL.receptive_field')
             self.test_statistics = []
-            for f in files:
+            for f in tqdm(files, ncols=100, ascii=True, desc='build test statistics'):
                 speaker = f.split('/')[0]
                 file_name = f.split('/')[1] + '/' + f.split('/')[2]
 

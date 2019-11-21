@@ -118,7 +118,6 @@ class DataGenerator:
             self.test_statistics = []
             for speaker in tqdm(speaker_sorted, ncols=100, ascii=True, desc='build test statistics'):
                 names = list(data['audio_names/'+speaker])
-                print(names)
                 for f in speaker_sorted[speaker]:
                     file_name = f.split('/')[1] + '/' + f.split('/')[2]
                     i = names.index(file_name)

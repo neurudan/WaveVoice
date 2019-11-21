@@ -41,6 +41,8 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
                 audio_names = f.create_group('audio_names')
                 statistics = f.create_group('statistics')
                 for speaker in audio_dict:
+                    if speaker == 'id10082':
+                        print(speaker)
                     shape = (len(audio_dict[speaker]),)
                     data.create_dataset(speaker, shape, dtype=data_type)
                     audio_names.create_dataset(speaker, shape, dtype=h5py.string_dtype(encoding='utf-8'))
@@ -73,9 +75,8 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
                     f['data/'+speaker][i] = x_new
                     f['statistics/'+speaker][i] = length
                     f['audio_names/'+speaker][i] = audio_name
-                    if speaker == 'id10082':
-                        print(speaker)
-                        print(f['audio_names/'+speaker][i])
+                    print(speaker)
+                    print(f['audio_names/'+speaker][i])
             pbar.update(1)
         progress_dict.pop(speaker, None)
         pickle.dump(progress_dict, open(progress_file, 'wb'))

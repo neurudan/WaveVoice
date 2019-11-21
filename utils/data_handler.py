@@ -1,4 +1,4 @@
-from utils.path_handler import get_speaker_list_files, get_dataset_file
+from utils.path_handler import get_speaker_list_files, get_dataset_file, get_test_list_files
 
 from multiprocessing import Process, Queue
 from tqdm import tqdm
@@ -24,11 +24,28 @@ def get_speaker_list(dataset, speaker_list):
         speakers.append(line)
     return speakers
 
+def get_test_list(dataset, test_list):
+    file_path = get_test_list_files(dataset)[test_list]
+    lines = []
+    with open(file_path) as f:
+        lines = f.readlines()
+    lines = list(set(lines))
+    if '\n' in lines:
+        lines.remove('\n')
+    data = []
+    for line in lines:
+        if line[-1] == '\n':
+            line = line[:-1]
+        parts = line.split(' ')
+        data.append(parts)
+    return data
+
 class DataGenerator:
     def __init__(self, config):
         self.config = config
 
         self.dataset = config.get('DATASET.base')
+        self.test_dataset = config.get('DATASET.base_test')
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
@@ -36,10 +53,10 @@ class DataGenerator:
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
         speaker_list_train = config.get('DATASET.speaker_list_train')
-        speaker_list_test = config.get('DATASET.speaker_list_test')
+        test_list = config.get('DATASET.test_list')
 
         self.train_speakers = get_speaker_list(self.dataset, speaker_list_train)
-        self.test_speakers = get_speaker_list(self.dataset, speaker_list_test)
+        self.test_data = get_test_list(self.test_dataset, test_list)
         self.num_speakers = len(self.train_speakers)
 
         if self.label in ['single_timestep', 'all_timesteps']:
@@ -82,15 +99,24 @@ class DataGenerator:
                             train_ids.append((i, 0, time - val_time))
                         
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
-            for speaker in self.test_speakers:
-                speaker_data = []
-                receptive_field = self.config.get('MODEL.receptive_field')
-                for i, time in enumerate(data['statistics/'+speaker][:]):
-                    n_chunks = math.floor(time / receptive_field)
-                    end = n_chunks * receptive_field
-                    audio_name = data['audio_names/'+speaker][i]
-                    speaker_data.append((i, audio_name, end, n_chunks))
-                self.test_statistics[speaker] = speaker_data
+                    
+            files = []
+            for (_, file1, file2) in self.test_data:
+                files.append(file1)
+                files.append(file2)
+            files = list(set(files))
+
+            receptive_field = self.config.get('MODEL.receptive_field')
+            self.test_statistics = []
+            for f in files:
+                speaker = f.split('/')[0]
+                file_name = f.split('/')[1] + '/' + f.split('/')[2]
+                for i, audio_name in enumerate(data['audio_names/'+speaker]):
+                    if audio_name == file_name:
+                        time = data['statistics/'+speaker][i]
+                        n_chunks = math.floor(time / receptive_field)
+                        end = n_chunks * receptive_field
+                        self.test_statistics.append((speaker, i, f, end, n_chunks))
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
@@ -104,13 +130,11 @@ class DataGenerator:
 
 
     def test_generator(self):
-        receptive_field = self.config.get('MODEL.receptive_field')
-        with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-            for speaker in self.test_speakers:
-                for (i, audio_name, end, n_chunks) in self.test_statistics[speaker]:
-                    samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
-                    samples = samples.reshape((samples.shape[0], samples.shape[1], 1))
-                    yield speaker+'/'+audio_name, samples
+        with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
+            for (speaker, i, audio_name, end, n_chunks) in self.test_statistics:
+                samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
+                samples = samples.reshape((samples.shape[0], samples.shape[1], 1))
+                yield audio_name, samples
 
 
     def __read_sample__(self, speaker, sample_id, start_id, receptive_field, data):

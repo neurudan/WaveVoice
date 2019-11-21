@@ -35,8 +35,14 @@ def get_dataset_file(dataset, data_type):
 def get_speaker_list_path(dataset):
     return get_dataset_path(dataset) + 'speaker_lists/'
 
+def get_test_list_path(dataset):
+    return get_dataset_path(dataset) + 'test_lists/'
+
 def get_speaker_list_files(dataset):
     return find_in_path(get_speaker_list_path(dataset), '.txt')
+
+def get_test_list_files(dataset):
+    return find_in_path(get_test_list_path(dataset), '.txt')
 
 def get_config_path():
     return get_base_dir() + 'configs/'

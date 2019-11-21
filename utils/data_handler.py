@@ -107,18 +107,25 @@ class DataGenerator:
                 files.append(file2)
             files = list(set(files))
 
+            speaker_sorted = {}
+            for f in files:
+                speaker = f.split('/')[0]
+                if speaker not in speaker_sorted:
+                    speaker_sorted[speaker] = []
+                speaker_sorted[speaker].append(f)
+
             receptive_field = self.config.get('MODEL.receptive_field')
             self.test_statistics = []
-            for f in tqdm(files, ncols=100, ascii=True, desc='build test statistics'):
-                speaker = f.split('/')[0]
-                file_name = f.split('/')[1] + '/' + f.split('/')[2]
-
-                for i, audio_name in enumerate(data['audio_names/'+speaker]):
-                    if audio_name == file_name:
-                        time = data['statistics/'+speaker][i]
-                        n_chunks = math.floor(time / receptive_field)
-                        end = n_chunks * receptive_field
-                        self.test_statistics.append((speaker, i, f, end, n_chunks))
+            for speaker in tqdm(speaker_sorted, ncols=100, ascii=True, desc='build test statistics'):
+                names = list(data['audio_names/'+speaker])
+                print(names)
+                for f in speaker_sorted[speaker]:
+                    file_name = f.split('/')[1] + '/' + f.split('/')[2]
+                    i = names.index(file_name)
+                    time = data['statistics/'+speaker][i]
+                    n_chunks = math.floor(time / receptive_field)
+                    end = n_chunks * receptive_field
+                    self.test_statistics.append((speaker, i, f, end, n_chunks))
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)

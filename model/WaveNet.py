@@ -51,16 +51,26 @@ def build_WaveNet(config):
     
     output = connection_block(residual_connections, skip_connections, config)
     output = embedding_block(output, config)
-    t = type(output)
     output = output_block(output, config)
-
 
     return Model(input, output), loss
 
-def get_embedding_model(full_model):
-    model = Model(inputs=full_model.input,
-                  outputs=full_model.layers[-2].output)
-    return model
 
-def replace_output_dense(full_model):
-    return ''
+def replace_output_dense(full_model, config):
+    output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
+
+    input = full_model.input
+    output = full_model.layers[-2].output
+    output = Lambda(lambda x: K.stop_gradient(x))(output)
+    output = output_block(output, config)
+
+    return Model(inputs=input, outputs=output)
+
+def remove_gradient_stopper(full_model):
+    input = full_model.input
+    embeddings = full_model.layers[-3].output
+    output = full_model.layers[-1]
+    output = output(embeddings)
+
+    return Model(inputs=input, outputs=output)
+

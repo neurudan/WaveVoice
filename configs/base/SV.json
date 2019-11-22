@@ -3,7 +3,7 @@
         "num_epochs":           10000,
         "steps_per_epoch":      100,
 
-        "setting":              "normal"
+        "setting":              "hyperepochs"
     },
 
 
@@ -59,7 +59,8 @@
 
     "HYPEREPOCH": {
         "num_speakers":         50,
-        "pretrain_epochs":      100
+        "pretrain_epochs":      100,
+        "num_hyperepochs":      1000
     },
 
     

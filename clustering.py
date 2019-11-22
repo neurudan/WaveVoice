@@ -16,8 +16,7 @@ def calculate_eer(full_model, test_data_handler):
     embeddings = {}
     model = Model(inputs=full_model.input,
                   outputs=full_model.layers[-2].output)
-    
-    print(type(full_model.layers[-2].output))
+                  
     gen = test_data_handler.test_generator()
     try:
         while True:

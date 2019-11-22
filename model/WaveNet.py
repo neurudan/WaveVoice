@@ -51,7 +51,13 @@ def build_WaveNet(config):
     
     output = connection_block(residual_connections, skip_connections, config)
     output = embedding_block(output, config)
+    print()
+    print()
+    print()
     print(type(output), flush=True)
+    print()
+    print()
+    print(flush=True)
     sys.exit()
     output = output_block(output, config)
 

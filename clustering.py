@@ -39,8 +39,6 @@ class ClusterCallback(Callback):
             for (label, file1, file2) in self.data_handler.test_data:
                 true_scores.append(int(label))
                 a = np.array([embeddings[file1], embeddings[file2]])
-                print(a)
-                print(a.shape, flush=True)
                 scores.append(cluster_embeddings(np.array([embeddings[file1], embeddings[file2]])))
 
             fpr, tpr, thresholds = roc_curve(true_scores, scores, pos_label=1)
@@ -55,10 +53,7 @@ def cluster_embeddings(embeddings, metric='cosine', method='complete'):
     embeddings_linkage = linkage(embeddings_distance, 'complete', 'cosine')
 
     thresholds = embeddings_linkage[:, 2]
-    predicted_clusters = []
-    print(thresholds)
-    print(len(thresholds))
-    predicted_cluster = fcluster(embeddings_linkage, threshold[0], 'distance')
+    predicted_cluster = fcluster(embeddings_linkage, thresholds[0], 'distance')
     print(predicted_cluster)
     if predicted_cluster[0] == predicted_cluster[1]:
         return 1

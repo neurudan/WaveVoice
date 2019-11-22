@@ -106,7 +106,7 @@ class Config():
         train_speakers = get_speaker_list(dataset, speaker_list)
         num_speakers = len(train_speakers)
 
-        if self.get('TRAINING.hyperepochs'):
+        if self.get('TRAINING.setting') == 'hyperepochs':
             num_speakers = self.get('HYPEREPOCH.num_speakers')
 
         if label in ['single_timestep', 'all_timesteps']:

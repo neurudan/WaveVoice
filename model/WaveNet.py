@@ -51,17 +51,11 @@ def build_WaveNet(config):
     
     output = connection_block(residual_connections, skip_connections, config)
     output = embedding_block(output, config)
-    print()
-    print()
-    print()
-    print(type(output), flush=True)
-    print()
-    print()
-    print(flush=True)
+    t = type(output)
     output = output_block(output, config)
 
 
-    return Model(input, output), loss
+    return Model(input, output), loss, t
 
 def get_embedding_model(full_model):
     model = Model(inputs=full_model.input,

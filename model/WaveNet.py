@@ -1,5 +1,5 @@
 from keras.layers import Conv1D, Lambda
-from keras.engine import Model
+from keras.engine import Model, Input
 from model.WaveNet_utils import RESIDUAL_BLOCKS, CONNECTION_BLOCKS, OUTPUT_BLOCKS, EMBEDDING_BLOCKS, get_input, SincConv1D
 from model.losses import AngularLoss
 
@@ -56,21 +56,25 @@ def build_WaveNet(config):
     return Model(input, output), loss
 
 
-def replace_output_dense(full_model, config):
-    output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
+def merge_models(embedding_model, output_model):
+    input = embedding_model.input
 
-    input = full_model.input
-    output = full_model.layers[-2].output
-    output = Lambda(lambda x: K.stop_gradient(x))(output)
-    output = output_block(output, config)
+    embedding = embedding_model.layers[-1]
+    output = output_model.layers[-2]
 
+    output = output(embedding)
     return Model(inputs=input, outputs=output)
 
-def remove_gradient_stopper(full_model):
-    input = full_model.input
-    embeddings = full_model.layers[-3].output
-    output = full_model.layers[-1]
-    output = output(embeddings)
+def get_embedding_net(full_model):
+    model = Model(inputs=full_model.input,
+                  outputs=full_model.layers[-2].output)
+    return model
 
+def get_new_dense_output(config):
+    output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
+    embedding_size = config.get('MODEL.embedding_size')
+
+    input = Input(shape=(embedding_size,), name='Embedding_Input')
+    output = output_block(input, config)
     return Model(inputs=input, outputs=output)
 

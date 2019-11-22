@@ -4,7 +4,7 @@ from utils.path_handler import get_sweep_config_path, get_config_path
 from utils.config_handler import Config
 from utils.preprocessing import setup_datasets 
 
-from model.WaveNet import build_WaveNet, replace_output_dense, remove_gradient_stopper
+from model.WaveNet import build_WaveNet, merge_models, get_embedding_net, get_new_dense_output
 
 from keras.engine import Input, Model
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
@@ -137,6 +137,7 @@ def train(config_name=None, project_name=None):
                 speakers.append(full_speaker_list[current_speaker_id])
                 current_speaker_id += 1
 
+
             # Setup Train Data-Generator
             train_data_generator = TrainDataGenerator(config, speakers)
             
@@ -156,23 +157,28 @@ def train(config_name=None, project_name=None):
             cb = ClusterCallback(config, model, test_data_generator)
 
             if not initial_epoch:
-                model = replace_output_dense(model, config)
+                embedding_model = get_embedding_net(model)
+                output_train_generator = train_data_generator.get_generator('train', embedding_model)
+                output_val_generator = None
+                if batch_type == 'real':
+                    output_val_generator = train_data_generator.get_generator('val', embedding_model)
+                
+                output_model = get_new_dense_output(config)
 
                 # Compile model
-                model.compile(optimizer=optimizer,
-                            loss=loss,
-                            metrics=['accuracy'])
+                output_model.compile(optimizer=optimizer,
+                                     loss=loss,
+                                     metrics=['accuracy'])
 
                 # Train Model
-                model.fit_generator(train_generator,
-                                    steps_per_epoch=train_steps,
-                                    validation_data=val_generator,
-                                    validation_steps=val_steps,
-                                    epochs=pretrain_epochs,
-                                    callbacks=[wandb_cb],
-                                    initial_epoch=current_epoch)
-
-                model = remove_gradient_stopper(model)
+                output_model.fit_generator(output_train_generator,
+                                           steps_per_epoch=train_steps,
+                                           validation_data=output_val_generator,
+                                           validation_steps=val_steps,
+                                           epochs=pretrain_epochs,
+                                           initial_epoch=current_epoch)
+                
+                model = merge_models(embedding_model, output_model)
 
                 current_epoch += pretrain_epochs
 

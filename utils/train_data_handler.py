@@ -33,7 +33,7 @@ class TrainDataGenerator:
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
-        
+
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
@@ -227,35 +227,18 @@ class TrainDataGenerator:
         self.enqueuer.terminate()
 
 
-    def get_generator(self, generator):
-        generators = {'train': self.train_batch_generator(),
-                      'val': self.val_batch_generator()}
+    def get_generator(self, generator, model=None):
+        generators = {'train': self.batch_generator('train', model),
+                      'val': self.batch_generator('val', model)}
         generators[generator].__next__()
         return generators[generator]
 
-
-    def train_batch_generator(self):
+    def batch_generator(self, set, model):
+        queue = self.val_queue
+        if set == 'train':
+            queue = self.train_queue
         while True:
-            [samples, timesteps, speaker_samples] = self.train_queue.get()
-            
-            label = None
-            if self.label == 'speaker':
-                label = speaker_samples
-            elif self.label == 'timesteps':
-                label = timesteps
-            
-            input = None
-            if self.condition == 'none':
-                input = [samples]
-            elif self.condition == 'speaker':
-                input = [samples, speaker_samples]
-            
-            yield input, label
-
-
-    def val_batch_generator(self):
-        while True:
-            [samples, timesteps, speaker_samples] = self.val_queue.get()
+            [samples, timesteps, speaker_samples] = queue.get()
 
             label = None
             if self.label == 'speaker':
@@ -263,10 +246,9 @@ class TrainDataGenerator:
             elif self.label == 'timesteps':
                 label = timesteps
             
-            input = None
-            if self.condition == 'none':
-                input = [samples]
-            elif self.condition == 'speaker':
-                input = [samples, speaker_samples]
-
+            input = [samples]
+            if self.condition == 'speaker':
+                input.append(speaker_samples)
+            if model is not None:
+                input = model.predict(input)
             yield input, label

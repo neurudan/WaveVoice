@@ -24,39 +24,21 @@ def get_speaker_list(dataset, speaker_list):
         speakers.append(line)
     return speakers
 
-def get_test_list(dataset, test_list):
-    file_path = get_test_list_files(dataset)[test_list]
-    lines = []
-    with open(file_path) as f:
-        lines = f.readlines()
-    lines = list(set(lines))
-    if '\n' in lines:
-        lines.remove('\n')
-    data = []
-    for line in lines:
-        if line[-1] == '\n':
-            line = line[:-1]
-        parts = line.split(' ')
-        data.append(parts)
-    return data
-
-class DataGenerator:
-    def __init__(self, config):
+class TrainDataGenerator:
+    def __init__(self, config, train_speakers=None):
         self.config = config
 
         self.dataset = config.get('DATASET.base')
-        self.test_dataset = config.get('DATASET.base_test')
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
-        speaker_list_train = config.get('DATASET.speaker_list_train')
-        test_list = config.get('DATASET.test_list')
+        speaker_list = config.get('DATASET.speaker_list')
 
-        self.train_speakers = get_speaker_list(self.dataset, speaker_list_train)
-        self.test_data = get_test_list(self.test_dataset, test_list)
+        if train_speakers is None:
+            self.train_speakers = get_speaker_list(self.dataset, speaker_list)
         self.num_speakers = len(self.train_speakers)
 
         if self.label in ['single_timestep', 'all_timesteps']:
@@ -66,11 +48,10 @@ class DataGenerator:
         config.set('DATASET.num_speakers', self.num_speakers)
 
         self.statistics = {}
-        self.test_statistics = {}
 
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
             if val_part == 'overall':
-                for speaker in self.train_speakers:
+                for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
                     times = data['statistics/'+speaker][:]
                     id_times = list(zip(np.arange(len(times)), times))
                     id_times.sort(key=lambda x: x[1])
@@ -99,50 +80,17 @@ class DataGenerator:
                             train_ids.append((i, 0, time - val_time))
                         
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
-                    
-        with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
-            files = []
-            for (_, file1, file2) in self.test_data:
-                files.append(file1)
-                files.append(file2)
-            files = list(set(files))
-
-            speaker_sorted = {}
-            for f in files:
-                speaker = f.split('/')[0]
-                if speaker not in speaker_sorted:
-                    speaker_sorted[speaker] = []
-                speaker_sorted[speaker].append(f)
-
-            receptive_field = self.config.get('MODEL.receptive_field')
-            self.test_statistics = []
-            for speaker in tqdm(speaker_sorted, ncols=100, ascii=True, desc='build test statistics'):
-                names = list(data['audio_names/'+speaker])
-                for f in speaker_sorted[speaker]:
-                    file_name = f.split('/')[1] + '/' + f.split('/')[2]
-                    i = names.index(file_name)
-                    time = data['statistics/'+speaker][i]
-                    n_chunks = math.floor(time / receptive_field)
-                    end = n_chunks * receptive_field
-                    self.test_statistics.append((speaker, i, f, end, n_chunks))
 
         self.train_queue = Queue(queue_size)
         self.val_queue = Queue(queue_size)
 
         self.enqueuer = Process(target=self.sample_enqueuer)
+        self.exit_process = False
         self.enqueuer.start()
         
         self.steps_per_epoch = config.get('TRAINING.steps_per_epoch')
         if self.config.get('DATASET.batch_type') == 'overfit':
             self.steps_per_epoch = math.ceil(self.num_speakers / self.config.get('DATASET.batch_size'))
-
-
-    def test_generator(self):
-        with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
-            for (speaker, i, audio_name, end, n_chunks) in self.test_statistics:
-                samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
-                samples = samples.reshape((samples.shape[0], samples.shape[1], 1))
-                yield audio_name, samples
 
 
     def __read_sample__(self, speaker, sample_id, start_id, receptive_field, data):
@@ -210,7 +158,7 @@ class DataGenerator:
         
         if batch_type == 'real':
             with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-                while True:
+                while not self.exit_process:
                     try:
                         if self.train_queue.qsize() > self.val_queue.qsize():
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
@@ -231,7 +179,7 @@ class DataGenerator:
                 empty_samples = np.zeros((batch_size, receptive_field, 256))
             elif self.data_type == 'mel':
                 empty_samples = np.zeros((batch_size, receptive_field, 128))
-            while True:
+            while not self.exit_process:
                 result = None
                 if self.label == 'speaker':
                     speaker_samples = np.eye(self.num_speakers)[np.random.randint(self.num_speakers, size=(batch_size, self.num_speakers))]
@@ -257,7 +205,7 @@ class DataGenerator:
                 samples_o, timesteps_o, speaker_samples_o = self.__get_batch__(batch_size, receptive_field, 'train', data, from_all_speakers=True)
             
             i = 0
-            while True:
+            while not self.exit_process:
                 samples, timesteps, speaker_samples = samples_o[i:i+batch_size], timesteps_o[i:i+batch_size], speaker_samples_o[i:i+batch_size]
                 i += batch_size
                 if i >= len(samples_o):
@@ -272,6 +220,8 @@ class DataGenerator:
 
 
     def terminate_enqueuer(self):
+        self.exit_process = True
+        time.sleep(5)
         self.enqueuer.terminate()
 
 

@@ -1,9 +1,10 @@
 import wandb
 import json
 import mlflow
+import os
 
 from utils.path_handler import get_base_config_path
-from utils.data_handler import get_speaker_list
+from utils.train_data_handler import get_speaker_list
 
 
 class Config():
@@ -20,7 +21,7 @@ class Config():
         wandb.config.update(dic)
 
     def set_mlflow_params(self):
-        keys = ['TRAINING', 'MODEL', 'DATASET', 'ANGULAR_LOSS']
+        keys = ['TRAINING', 'MODEL', 'DATASET', 'ANGULAR_LOSS', 'HYPEREPOCH']
 
         for key in keys:
             dic = wandb.config.get(key)
@@ -56,3 +57,60 @@ class Config():
                 dic[key] = {}
             dic = dic[key]
         dic[keys[-1]] = val
+    
+    def update_run_name(self):
+        run_name = '_'.join(self.file_name.split('.')[:-1])
+        try:
+            name_parts = self.get('run_name').split('+')
+            name = ''
+            for part in name_parts:
+                try:
+                    p = self.get(part)
+                    if p is None:
+                        name += part
+                    else:
+                        if type(p) is int:
+                            name += '%03d'%p
+                        else:
+                            name += str(p)
+                except:
+                    name += part
+            run_name = name
+        except:
+            pass
+        run_id = self.run.id
+        
+        api = wandb.Api()
+        runs = api.runs(path=os.environ['WANDB_ENTITY']+"/"+os.environ['WANDB_PROJECT'])
+        for run in runs:
+            if run.id == run_id:
+                run.name = run_name
+                run.update()
+        return run_name
+
+    def store_required_variables(self):
+        dilation_base = self.get('MODEL.dilation_base')
+        dilation_depth = self.get('MODEL.dilation_depth')
+        filter_size = self.get('MODEL.filter_size')
+
+        receptive_field = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
+        if dilation_base == filter_size:
+            receptive_field = filter_size ** dilation_depth
+        
+        self.set('MODEL.receptive_field', receptive_field)        
+
+        dataset = self.get('DATASET.base')
+        label = self.get('DATASET.label')
+        speaker_list = self.get('DATASET.speaker_list')
+
+        train_speakers = get_speaker_list(dataset, speaker_list)
+        num_speakers = len(train_speakers)
+
+        if self.get('TRAINING.hyperepochs'):
+            num_speakers = self.get('HYPEREPOCH.num_speakers')
+
+        if label in ['single_timestep', 'all_timesteps']:
+            self.set('MODEL.output_bins', 256)
+        elif label == 'speaker':
+            self.set('MODEL.output_bins', num_speakers)
+        self.set('DATASET.num_speakers', num_speakers)

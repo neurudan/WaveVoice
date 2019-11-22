@@ -1,4 +1,5 @@
-from utils.data_handler import DataGenerator
+from utils.train_data_handler import TrainDataGenerator
+from utils.test_data_handler import TestDataGenerator
 from utils.path_handler import get_sweep_config_path, get_config_path
 from utils.config_handler import Config
 from utils.preprocessing import setup_datasets 
@@ -22,48 +23,6 @@ import mlflow
 import mlflow.keras
 
 
-def update_run_name(config):
-    run_name = '_'.join(config.file_name.split('.')[:-1])
-    try:
-        name_parts = config.get('run_name').split('+')
-        name = ''
-        for part in name_parts:
-            try:
-                p = config.get(part)
-                if p is None:
-                    name += part
-                else:
-                    if type(p) is int:
-                        name += '%03d'%p
-                    else:
-                        name += str(p)
-            except:
-                name += part
-        run_name = name
-    except:
-        pass
-    run_id = config.run.id
-    
-    api = wandb.Api()
-    runs = api.runs(path=os.environ['WANDB_ENTITY']+"/"+os.environ['WANDB_PROJECT'])
-    for run in runs:
-        if run.id == run_id:
-            run.name = run_name
-            run.update()
-    return run_name
-
-def store_required_variables(config):
-    dilation_base = config.get('MODEL.dilation_base')
-    dilation_depth = config.get('MODEL.dilation_depth')
-    filter_size = config.get('MODEL.filter_size')
-
-    receptive_field = (dilation_base ** dilation_depth) * (filter_size - dilation_base + 1)
-    if dilation_base == filter_size:
-        receptive_field = filter_size ** dilation_depth
-    
-    config.set('MODEL.receptive_field', receptive_field)
-
-
 def setup_optimizer(config):
     lr = config.get('OPTIMIZER.lr')
     optimizers = {
@@ -84,22 +43,7 @@ def train(config_name=None, project_name=None):
     num_epochs = config.get('TRAINING.num_epochs')
     batch_type = config.get('DATASET.batch_type')
 
-    store_required_variables(config)
-
-
-    # Setup Data-Generator
-    data_generator = DataGenerator(config)
-    
-    train_generator = data_generator.get_generator('train')
-    train_steps = data_generator.steps_per_epoch
-
-    val_generator = None
-    val_steps = None
-    if batch_type == 'real':
-        val_set = config.get('DATASET.val_set')
-        val_generator = data_generator.get_generator('val')
-        val_steps = int(train_steps * val_set / (1 - val_set))
-
+    config.store_required_variables()
 
     # Setup Optimizer
     optimizer = setup_optimizer(config)
@@ -112,12 +56,30 @@ def train(config_name=None, project_name=None):
                   loss=loss,
                   metrics=['accuracy'])
 
-    run_name = update_run_name(config)
+    run_name = config.update_run_name()
+
+
+    # Setup Train Data-Generator
+    train_data_generator = TrainDataGenerator(config)
+    
+    train_generator = train_data_generator.get_generator('train')
+    train_steps = train_data_generator.steps_per_epoch
+
+    val_generator = None
+    val_steps = None
+    if batch_type == 'real':
+        val_set = config.get('DATASET.val_set')
+        val_generator = train_data_generator.get_generator('val')
+        val_steps = int(train_steps * val_set / (1 - val_set))
+
+
+    # Setup Test Data-Generator
+    test_data_generator = TestDataGenerator(config)
 
 
     # Setup Callback
     wandb_cb = WandbCallback()
-    cb = ClusterCallback(config, model, data_generator)
+    cb = ClusterCallback(config, model, test_data_generator)
 
 
     # Start MlFlow log
@@ -138,10 +100,10 @@ def train(config_name=None, project_name=None):
                         validation_data=val_generator,
                         validation_steps=val_steps,
                         epochs=num_epochs,
-                        callbacks=[wandb_cb, cb])
+                        callbacks=[cb, wandb_cb])
 
     # Terminate enqueueing process
-    data_generator.terminate_enqueuer()
+    train_data_generator.terminate_enqueuer()
     if global_settings['mlflow']:
         mlflow.end_run(status='FINISHED')
 

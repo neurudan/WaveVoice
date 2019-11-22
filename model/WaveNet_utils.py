@@ -296,19 +296,15 @@ def use_both_connections(residual_connections, skip_connections, config):
     output = Activation('relu')(output)
     return output
 
+# ================
+# Embedding Blocks
+# ================
 
-# =============
-# Output Blocks
-# =============
-
-# This should be the same as output_conv_orig
-
-def output_dense(input, config):
+def embedding_dense(input, config):
     embedding_size = config.get('MODEL.embedding_size')
     causal = config.get('MODEL.causal')
-    output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
-    dense_drop_rate = config.get('MODEL.dense_drop_rate')
+    embedding_drop_rate = config.get('MODEL.embedding_drop_rate')
 
     bin_id = -1
     if not causal:
@@ -318,25 +314,44 @@ def output_dense(input, config):
                     output_shape=(input._keras_shape[-1],), name='Select_single_bin')(input)
 
     output = Dense(embedding_size, activation='relu', name='Embeddings')(output)
-    output = Dropout(dense_drop_rate)(output)
+    output = Dropout(embedding_drop_rate)(output)
+
+    return output
+
+
+def embedding_conv(input, config):
+    embedding_size = config.get('MODEL.embedding_size')
+    embedding_drop_rate = config.get('MODEL.embedding_drop_rate')
+
+    output = Conv1D(embedding_size, 1, activation='relu', padding='same', name='Embeddings')(input)
+    output = Dropout(embedding_drop_rate)(output)
+    return output
+
+
+# =============
+# Output Blocks
+# =============
+
+# This should be the same as output_conv_orig
+
+def output_dense(input, config):
+    output_bins = config.get('MODEL.output_bins')
     
     if config.get('MODEL.loss') == 'angular_margin':
         dense = config.get('loss').get_dense()
-        output = dense(name='Output')(output)
+        output = dense(name='Output')(input)
     else:
-        output = Dense(output_bins, activation='softmax', name='Output')(output)
+        output = Dense(output_bins, activation='softmax', name='Output')(input)
     return output
 
 
 def output_conv(input, config):
-    embedding_size = config.get('MODEL.embedding_size')
     causal = config.get('MODEL.causal')
     output_bins = config.get('MODEL.output_bins')
     receptive_field = config.get('MODEL.receptive_field')
     label = config.get('DATASET.label')
 
-    output = Conv1D(embedding_size, 1, activation='relu', padding='same', name='Embeddings')(input)
-    output = Conv1D(output_bins, 1, activation='softmax', padding='same', name='Conv1D_Output')(output)
+    output = Conv1D(output_bins, 1, activation='softmax', padding='same', name='Conv1D_Output')(input)
 
     if label != 'all_timesteps':
         bin_id = -1
@@ -358,6 +373,10 @@ RESIDUAL_BLOCKS = {'resblock_orig': resblock_orig,
 CONNECTION_BLOCKS = {'skip': use_skip_connections,
                      'residual': use_residual_connections,
                      'both': use_both_connections}
+
+
+EMBEDDING_BLOCKS = {'output_dense': embedding_dense,
+                    'output_conv': embedding_conv}
 
 
 OUTPUT_BLOCKS = {'output_dense': output_dense,

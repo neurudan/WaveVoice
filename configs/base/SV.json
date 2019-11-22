@@ -1,7 +1,9 @@
 {
     "TRAINING": {
         "num_epochs":           10000,
-        "steps_per_epoch":      100
+        "steps_per_epoch":      100,
+
+        "setting":              "normal"
     },
 
 
@@ -16,6 +18,7 @@
         "causal":               false,
         "reverse":              false,
 
+
         "residual_block":       "resblock_orig",
         "connection_block":     "skip",
         "output_block":         "output_dense",
@@ -24,13 +27,13 @@
 
         "res_drop_rate":        0.2,
         "skip_drop_rate":       0.2,
-        "dense_drop_rate":      0.2
+        "embedding_drop_rate":  0.2
     },
     
 
     "DATASET": {
         "base":                 "timit",
-        "speaker_list_train":   "timit_speakers_100_50w_50m_not_reynolds.txt",
+        "speaker_list":         "timit_speakers_100_50w_50m_not_reynolds.txt",
         
         "base_test":            "vox1",
         "test_list":            "trash.txt",
@@ -51,6 +54,12 @@
     "OPTIMIZER": {
         "type":                 "adam",
         "lr":                   3e-4
+    },
+
+
+    "HYPEREPOCH": {
+        "num_speakers":         50,
+        "pretrain_epochs":      100
     },
 
     

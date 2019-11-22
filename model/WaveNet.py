@@ -1,6 +1,6 @@
 from keras.layers import Conv1D, Lambda
 from keras.engine import Model
-from model.WaveNet_utils import RESIDUAL_BLOCKS, CONNECTION_BLOCKS, OUTPUT_BLOCKS, get_input, SincConv1D
+from model.WaveNet_utils import RESIDUAL_BLOCKS, CONNECTION_BLOCKS, OUTPUT_BLOCKS, EMBEDDING_BLOCKS, get_input, SincConv1D
 from model.losses import AngularLoss
 
 import keras.backend as K
@@ -19,6 +19,7 @@ def build_WaveNet(config):
 
     residual_block = RESIDUAL_BLOCKS[config.get('MODEL.residual_block')]
     connection_block = CONNECTION_BLOCKS[config.get('MODEL.connection_block')]
+    embedding_block = EMBEDDING_BLOCKS[config.get('MODEL.output_block')]
     output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
 
 
@@ -49,6 +50,17 @@ def build_WaveNet(config):
 
     
     output = connection_block(residual_connections, skip_connections, config)
+    output = embedding_block(output, config)
+    print(type(output))
     output = output_block(output, config)
 
+
     return Model(input, output), loss
+
+def get_embedding_model(full_model):
+    model = Model(inputs=full_model.input,
+                  outputs=full_model.layers[-2].output)
+    return model
+
+def replace_output_dense(full_model):
+    return ''

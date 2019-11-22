@@ -55,7 +55,7 @@ def build_WaveNet(config):
     output = output_block(output, config)
 
 
-    return Model(input, output), loss, t
+    return Model(input, output), loss
 
 def get_embedding_model(full_model):
     model = Model(inputs=full_model.input,

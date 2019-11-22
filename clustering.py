@@ -53,9 +53,10 @@ def cluster_embeddings(embeddings, metric='cosine', method='complete'):
 
     thresholds = embeddings_linkage[:, 2]
     predicted_clusters = []
-
-    for threshold in thresholds:
-        predicted_cluster = fcluster(embeddings_linkage, threshold, 'distance')
-        predicted_clusters.append(predicted_cluster)
-    
-    print(predicted_clusters)
+    print(thresholds)
+    print(len(thresholds))
+    predicted_cluster = fcluster(embeddings_linkage, threshold[0], 'distance')
+    print(predicted_cluster)
+    if predicted_cluster[0] == predicted_cluster[1]:
+        return 1
+    return 0

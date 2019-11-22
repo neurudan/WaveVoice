@@ -33,7 +33,7 @@
         "speaker_list_train":   "timit_speakers_100_50w_50m_not_reynolds.txt",
         
         "base_test":            "vox1",
-        "test_list":            "voxceleb1_veri_test_hard.txt",
+        "test_list":            "trash.txt",
 
         "condition":            "none",
         "label":                "speaker",

@@ -47,11 +47,11 @@ class ClusterCallback(Callback):
             thresh = interp1d(fpr, thresholds)(eer)
             wandb.log({'EER': eer, 'thresh': thresh}, step=epoch)
             print(time.time() - start)
+            sys.exit()
 
 
 def cluster_embeddings(embeddings, metric='cosine', method='complete'):
     print(embeddings)
-    sys.exit()
     embeddings_distance = cdist(embeddings, embeddings, 'cosine')
     embeddings_linkage = linkage(embeddings_distance, 'complete', 'cosine')
 

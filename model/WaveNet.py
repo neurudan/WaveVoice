@@ -58,7 +58,6 @@ def build_WaveNet(config):
     print()
     print()
     print(flush=True)
-    sys.exit()
     output = output_block(output, config)
 
 

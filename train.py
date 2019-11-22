@@ -52,6 +52,7 @@ def train(config_name=None, project_name=None):
     # Setup Model
     model, loss = build_WaveNet(config)
     model.summary()
+    sys.exit()
     model.compile(optimizer=optimizer,
                   loss=loss,
                   metrics=['accuracy'])

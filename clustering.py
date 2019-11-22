@@ -49,12 +49,13 @@ class ClusterCallback(Callback):
 
 
 def cluster_embeddings(embeddings, metric='cosine', method='complete'):
+    print(embeddings)
+    sys.exit()
     embeddings_distance = cdist(embeddings, embeddings, 'cosine')
     embeddings_linkage = linkage(embeddings_distance, 'complete', 'cosine')
 
     thresholds = embeddings_linkage[:, 2]
     predicted_cluster = fcluster(embeddings_linkage, thresholds[0], 'distance')
-    print(predicted_cluster)
     if predicted_cluster[0] == predicted_cluster[1]:
         return 1
     return 0

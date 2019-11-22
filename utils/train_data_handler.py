@@ -27,17 +27,19 @@ def get_speaker_list(dataset, speaker_list):
 class TrainDataGenerator:
     def __init__(self, config, train_speakers=None):
         self.config = config
+        self.train_speakers = train_speakers
 
         self.dataset = config.get('DATASET.base')
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
+        
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
         speaker_list = config.get('DATASET.speaker_list')
 
-        if train_speakers is None:
+        if self.train_speakers is None:
             self.train_speakers = get_speaker_list(self.dataset, speaker_list)
         self.num_speakers = len(self.train_speakers)
 

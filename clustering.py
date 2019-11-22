@@ -38,6 +38,9 @@ class ClusterCallback(Callback):
             true_scores = []
             for (label, file1, file2) in self.data_handler.test_data:
                 true_scores.append(int(label))
+                a = np.array([embeddings[file1], embeddings[file2]])
+                print(a)
+                print(a.shape)
                 scores.append(cluster_embeddings(np.array([embeddings[file1], embeddings[file2]])))
 
             fpr, tpr, thresholds = roc_curve(true_scores, scores, pos_label=1)

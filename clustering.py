@@ -40,7 +40,7 @@ class ClusterCallback(Callback):
                 true_scores.append(int(label))
                 a = np.array([embeddings[file1], embeddings[file2]])
                 print(a)
-                print(a.shape)
+                print(a.shape, flush=True)
                 scores.append(cluster_embeddings(np.array([embeddings[file1], embeddings[file2]])))
 
             fpr, tpr, thresholds = roc_curve(true_scores, scores, pos_label=1)

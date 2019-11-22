@@ -24,7 +24,7 @@ class ClusterCallback(Callback):
         if epoch % 1 == 0:
             start = time.time()
             embeddings = {}
-            model = Model(inputs=self.model.input, outputs=self.model.layers[-3].output)
+            model = Model(inputs=self.model.input, outputs=self.model.layers[-2].output)
             gen = self.data_handler.test_generator()
             try:
                 while True:

@@ -16,6 +16,7 @@ import wandb
 
 
 def calculate_eer(full_model, test_data_handler):
+    print()
     embeddings = {}
     model = Model(inputs=full_model.input,
                   outputs=full_model.layers[-2].output)
@@ -40,6 +41,7 @@ def calculate_eer(full_model, test_data_handler):
         scores2.append(1 - np.sum(e))
         scores3.append(1 - np.sum(e) ** 2)
 
+    time.sleep(1)
     print('calculate EER')
     fpr, tpr, _ = roc_curve(true_scores, scores1, pos_label=1)
     eer1 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
@@ -49,6 +51,7 @@ def calculate_eer(full_model, test_data_handler):
 
     fpr, tpr, _ = roc_curve(true_scores, scores3, pos_label=1)
     eer3 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    print()
     return eer1, eer2, eer3
 
 

@@ -65,7 +65,7 @@ class TestDataGenerator:
 
     def test_generator(self):
         with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
-            for (speaker, i, audio_name, end, n_chunks) in self.test_statistics:
+            for (speaker, i, audio_name, end, n_chunks) in tqdm(self.test_statistics, ncols=100, ascii=True, desc='generating speaker embeddings'):
                 samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
                 if self.data_type == 'original':
                     samples = samples.reshape((n_chunks, self.receptive_field, 1))

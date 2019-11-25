@@ -59,7 +59,7 @@
 
     "HYPEREPOCH": {
         "num_speakers":         50,
-        "pretrain_epochs":      100,
+        "pretrain_epochs":      500,
         "num_hyperepochs":      1000
     },
 

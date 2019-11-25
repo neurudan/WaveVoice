@@ -131,7 +131,7 @@ def train(config_name=None, project_name=None):
         current_speaker_id = 0
         current_epoch = 0
 
-        for i in range(num_hyperepochs):
+        for hyperepoch in range(num_hyperepochs):
 
             speakers = []
             for i in range(num_speakers):
@@ -200,7 +200,7 @@ def train(config_name=None, project_name=None):
 
             # Test Model (calculate EER)
             eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
-            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3, 'Hyperepoch': i},
+            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3, 'Hyperepoch': hyperepoch},
                       step=current_epoch + 1)
 
 

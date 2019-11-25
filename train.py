@@ -200,9 +200,9 @@ def train(config_name=None, project_name=None):
 
             # Test Model (calculate EER)
             eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
-            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3},
+            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3, 'Hyperepoch': i},
                       step=current_epoch + 1)
-                      
+
 
             # Terminate enqueueing process
             train_data_generator.terminate_enqueuer()

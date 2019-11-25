@@ -59,7 +59,7 @@ def build_WaveNet(config):
 def merge_models(embedding_model, output_model):
     input = embedding_model.input
 
-    embedding = embedding_model.layers[-1]
+    embedding = embedding_model.layers[-1].output
     output = output_model.layers[-2]
 
     output = output(embedding)

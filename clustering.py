@@ -26,16 +26,26 @@ def calculate_eer(full_model, test_data_handler):
     except:
         pass
 
-    scores = []
+    scores1 = []
+    scores2 = []
+    scores3 = []
     true_scores = []
     for (label, file1, file2) in test_data_handler.test_data:
         true_scores.append(int(label))
-        scores.append(np.sum(embeddings[file1]*embeddings[file2]))
+        scores1.append(np.sum(embeddings[file1]*embeddings[file2]))
+        e = np.abs(embeddings[file1] - embeddings[file2])
+        scores2.append(1 - np.sum(e))
+        scores3.append(1 - np.sum(e) ** 2)
 
-    fpr, tpr, thresholds = roc_curve(true_scores, scores, pos_label=1)
-    eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
-    thresh = interp1d(fpr, thresholds)(eer)
-    return eer, thresh
+    fpr, tpr, _ = roc_curve(true_scores, scores1, pos_label=1)
+    eer1 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+
+    fpr, tpr, _ = roc_curve(true_scores, scores2, pos_label=1)
+    eer2 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+
+    fpr, tpr, _ = roc_curve(true_scores, scores3, pos_label=1)
+    eer3 = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    return eer1, eer2, eer3
 
 
 class ClusterCallback(Callback):
@@ -46,7 +56,6 @@ class ClusterCallback(Callback):
 
     def on_epoch_end(self, epoch, logs):
         if epoch % 100 == 0:
-            eer, thresh = calculate_eer(self.model, self.test_data_handler)
-            wandb.log({'EER': eer,
-                       'thresh': thresh},
+            eer1, eer2, eer3 = calculate_eer(self.model, self.test_data_handler)
+            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3},
                       step=epoch + 1)

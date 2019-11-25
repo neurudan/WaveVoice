@@ -13,7 +13,7 @@ from keras import backend as K
 
 from wandb.keras import WandbCallback
 
-from clustering import ClusterCallback
+from clustering import ClusterCallback, calculate_eer
 
 import wandb
 import json
@@ -157,7 +157,6 @@ def train(config_name=None, project_name=None):
 
             # Setup Callback
             wandb_cb = WandbCallback()
-            cb = ClusterCallback(config, model, test_data_generator)
 
             if not initial_epoch:
                 model = change_output_dense(model, config)
@@ -174,10 +173,10 @@ def train(config_name=None, project_name=None):
                                     validation_data=val_generator,
                                     validation_steps=val_steps,
                                     epochs=current_epoch + pretrain_epochs,
+                                    callbacks=[wandb_cb],
                                     initial_epoch=current_epoch)
                 
                 model = make_trainable(model)
-
                 current_epoch += pretrain_epochs
 
             # Compile model
@@ -195,6 +194,11 @@ def train(config_name=None, project_name=None):
                                 callbacks=[wandb_cb],
                                 initial_epoch=current_epoch)
             
+            # Test Model (calculate EER)
+            eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
+            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3},
+                      step=epoch + 1)
+
             current_epoch += num_epochs
             initial_epoch = False
 

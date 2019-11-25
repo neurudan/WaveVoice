@@ -194,14 +194,15 @@ def train(config_name=None, project_name=None):
                                 callbacks=[wandb_cb],
                                 initial_epoch=current_epoch)
             
-            # Test Model (calculate EER)
-            eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
-            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3},
-                      step=epoch + 1)
-
             current_epoch += num_epochs
             initial_epoch = False
 
+
+            # Test Model (calculate EER)
+            eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
+            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3},
+                      step=current_epoch + 1)
+                      
 
             # Terminate enqueueing process
             train_data_generator.terminate_enqueuer()

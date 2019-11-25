@@ -56,25 +56,21 @@ def build_WaveNet(config):
     return Model(input, output), loss
 
 
-def merge_models(embedding_model, output_model):
-    input = embedding_model.input
+def make_trainable(full_model):
+    for layer in full_model.layers[:]:
+        layer.trainable = True
+    return full_model
 
-    embedding = embedding_model.layers[-1].output
-    output = output_model.layers[-2]
 
-    output = output(embedding)
-    return Model(inputs=input, outputs=output)
-
-def get_embedding_net(full_model):
-    model = Model(inputs=full_model.input,
-                  outputs=full_model.layers[-2].output)
-    return model
-
-def get_new_dense_output(config):
+def change_output_dense(full_model, config):
     output_block = OUTPUT_BLOCKS[config.get('MODEL.output_block')]
-    embedding_size = config.get('MODEL.embedding_size')
 
-    input = Input(shape=(embedding_size,), name='Embedding_Input')
-    output = output_block(input, config)
-    return Model(inputs=input, outputs=output)
+    input = full_model.input
+    embedding = full_model.layers[-2].output
+    output = output_block(embedding, config)
+    model = Model(inputs=input, outputs=output)
+
+    for layer in model.layers[:-1]:
+        layer.trainable = False
+    return model
 

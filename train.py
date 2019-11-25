@@ -4,7 +4,7 @@ from utils.path_handler import get_sweep_config_path, get_config_path
 from utils.config_handler import Config
 from utils.preprocessing import setup_datasets 
 
-from model.WaveNet import build_WaveNet, merge_models, get_embedding_net, get_new_dense_output
+from model.WaveNet import build_WaveNet, make_trainable, change_output_dense
 
 from keras.engine import Input, Model
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
@@ -160,32 +160,28 @@ def train(config_name=None, project_name=None):
             cb = ClusterCallback(config, model, test_data_generator)
 
             if not initial_epoch:
-                embedding_model = get_embedding_net(model)
-                output_train_generator = train_data_generator.get_generator('train', embedding_model)
-                output_val_generator = None
-                if batch_type == 'real':
-                    output_val_generator = train_data_generator.get_generator('val', embedding_model)
+                model = change_output_dense(model, config)
                 
-                output_model = get_new_dense_output(config)
-
                 # Compile model
-                output_model.compile(optimizer=optimizer,
-                                     loss=loss,
-                                     metrics=['accuracy'])
+                optimizer = setup_optimizer(config)
+                model.compile(optimizer=optimizer,
+                              loss=loss,
+                              metrics=['accuracy'])
 
                 # Train Model
-                output_model.fit_generator(output_train_generator,
-                                           steps_per_epoch=train_steps,
-                                           validation_data=output_val_generator,
-                                           validation_steps=val_steps,
-                                           epochs=current_epoch + pretrain_epochs,
-                                           initial_epoch=current_epoch)
+                model.fit_generator(train_generator,
+                                    steps_per_epoch=train_steps,
+                                    validation_data=val_generator,
+                                    validation_steps=val_steps,
+                                    epochs=current_epoch + pretrain_epochs,
+                                    initial_epoch=current_epoch)
                 
-                model = merge_models(embedding_model, output_model)
+                model = make_trainable(model)
 
                 current_epoch += pretrain_epochs
 
             # Compile model
+            optimizer = setup_optimizer(config)
             model.compile(optimizer=optimizer,
                           loss=loss,
                           metrics=['accuracy'])

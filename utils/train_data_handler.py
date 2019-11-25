@@ -222,18 +222,19 @@ class TrainDataGenerator:
 
 
     def terminate_enqueuer(self):
+        print('stopping enqueuer...')
         self.exit_process = True
         time.sleep(5)
         self.enqueuer.terminate()
+        print('enqueuer stopped.')
 
 
-    def get_generator(self, generator, model=None):
-        generators = {'train': self.batch_generator('train', model),
-                      'val': self.batch_generator('val', model)}
-        generators[generator].__next__()
-        return generators[generator]
+    def get_generator(self, generator):
+        gen = self.batch_generator(generator)
+        gen.__next__()
+        return gen
 
-    def batch_generator(self, set, model):
+    def batch_generator(self, set):
         queue = self.val_queue
         if set == 'train':
             queue = self.train_queue
@@ -249,6 +250,4 @@ class TrainDataGenerator:
             input = [samples]
             if self.condition == 'speaker':
                 input.append(speaker_samples)
-            if model is not None:
-                input = model.predict(input)
             yield input, label

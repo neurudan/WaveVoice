@@ -9,6 +9,7 @@ from model.WaveNet import build_WaveNet, merge_models, get_embedding_net, get_ne
 from keras.engine import Input, Model
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 from keras.metrics import categorical_accuracy
+from keras import backend as K
 
 from wandb.keras import WandbCallback
 
@@ -38,6 +39,8 @@ def setup_optimizer(config):
 
 
 def train(config_name=None, project_name=None):
+    K.clear_session()
+    
     config = Config(config_name)
 
     num_epochs = config.get('TRAINING.num_epochs')

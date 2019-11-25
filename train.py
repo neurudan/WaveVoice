@@ -175,7 +175,7 @@ def train(config_name=None, project_name=None):
                                            steps_per_epoch=train_steps,
                                            validation_data=output_val_generator,
                                            validation_steps=val_steps,
-                                           epochs=pretrain_epochs,
+                                           epochs=current_epoch + pretrain_epochs,
                                            initial_epoch=current_epoch)
                 
                 model = merge_models(embedding_model, output_model)
@@ -192,7 +192,7 @@ def train(config_name=None, project_name=None):
                                 steps_per_epoch=train_steps,
                                 validation_data=val_generator,
                                 validation_steps=val_steps,
-                                epochs=num_epochs,
+                                epochs=current_epoch + num_epochs,
                                 callbacks=[wandb_cb],
                                 initial_epoch=current_epoch)
             

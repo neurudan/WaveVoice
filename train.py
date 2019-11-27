@@ -176,6 +176,8 @@ def train(config_name=None, project_name=None):
                                     epochs=current_epoch + pretrain_epochs,
                                     callbacks=[wandb_cb],
                                     initial_epoch=current_epoch)
+
+                wandb.save('model_hyperepoch_%d_pretrain.h5' % hyperepoch)
                 
                 model = make_trainable(model)
                 current_epoch += pretrain_epochs
@@ -194,6 +196,8 @@ def train(config_name=None, project_name=None):
                                 epochs=current_epoch + num_epochs,
                                 callbacks=[wandb_cb],
                                 initial_epoch=current_epoch)
+            
+            wandb.save('model_hyperepoch_%d.h5' % hyperepoch)
             
             current_epoch += num_epochs
             initial_epoch = False

@@ -1,11 +1,23 @@
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module='tensorflow')
+warnings.filterwarnings("ignore", category=UserWarning, module='keras')
+warnings.filterwarnings("ignore", category=UserWarning, module='wandb')
+
+import logging
+logging.getLogger('tensorflow').disabled = True
+logging.getLogger('wandb').disabled = True
+
 from wandb.util import set_api_key
 from wandb.apis import InternalApi
 from wandb import wandb_dir, util
+
+from databricks_cli.configure.provider import DatabricksConfig, update_and_persist_config
+
 from utils.path_handler import get_sweep_config_path, get_config_path
+
 from shutil import copyfile
 from train import train
 from time import sleep
-from databricks_cli.configure.provider import DatabricksConfig, update_and_persist_config
 
 import wandb
 import sys

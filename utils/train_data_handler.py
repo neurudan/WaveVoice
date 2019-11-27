@@ -33,6 +33,7 @@ class TrainDataGenerator:
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
+        self.val_active = config.get('DATASET.val_active')
 
         queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
@@ -52,35 +53,43 @@ class TrainDataGenerator:
         self.statistics = {}
 
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-            if val_part == 'overall':
-                for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
-                    times = data['statistics/'+speaker][:]
-                    id_times = list(zip(np.arange(len(times)), times))
-                    id_times.sort(key=lambda x: x[1])
-                    total_time = np.sum(times)
-                    train_ids = []
-                    val_time = 0
-                    val_ids = []
-                    for id, time in id_times:
-                        if time + val_time < total_time * val_set:
-                            val_ids.append((id, 0, time))
-                            val_time += time
-                        else:
-                            train_ids.append((id, 0, time))
-                    self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
+            if self.val_active:
+                if val_part == 'overall':
+                    for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
+                        times = data['statistics/'+speaker][:]
+                        id_times = list(zip(np.arange(len(times)), times))
+                        id_times.sort(key=lambda x: x[1])
+                        total_time = np.sum(times)
+                        train_ids = []
+                        val_time = 0
+                        val_ids = []
+                        for id, time in id_times:
+                            if time + val_time < total_time * val_set:
+                                val_ids.append((id, 0, time))
+                                val_time += time
+                            else:
+                                train_ids.append((id, 0, time))
+                        self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
+                else:
+                    for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
+                        train_ids = []
+                        val_ids = []
+                        for i, time in enumerate(data['statistics/'+speaker][:]):
+                            val_time = int(time * val_set)
+                            if val_part == 'before':
+                                val_ids.append((i, 0, val_time))
+                                train_ids.append((i, val_time, time - val_time))
+                            elif val_part == 'after':
+                                val_ids.append((i, time - val_time, val_time))
+                                train_ids.append((i, 0, time - val_time))
+                            
+                        self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
             else:
                 for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
                     train_ids = []
                     val_ids = []
                     for i, time in enumerate(data['statistics/'+speaker][:]):
-                        val_time = int(time * val_set)
-                        if val_part == 'before':
-                            val_ids.append((i, 0, val_time))
-                            train_ids.append((i, val_time, time - val_time))
-                        elif val_part == 'after':
-                            val_ids.append((i, time - val_time, val_time))
-                            train_ids.append((i, 0, time - val_time))
-                        
+                        train_ids.append((i, 0, time))
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
 
         self.train_queue = Queue(queue_size)
@@ -160,16 +169,24 @@ class TrainDataGenerator:
         
         if batch_type == 'real':
             with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-                while not self.exit_process:
-                    try:
-                        if self.train_queue.qsize() > self.val_queue.qsize():
-                            samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                            self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                        else:
+                if self.val_active:
+                    while not self.exit_process:
+                        try:
+                            if self.train_queue.qsize() > self.val_queue.qsize():
+                                samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
+                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
+                            else:
+                                samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
+                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
+                        except:
+                            pass
+                else: 
+                    while not self.exit_process:
+                        try:
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
                             self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                    except:
-                        pass
+                        except:
+                            pass
         elif batch_type == 'zeros':
             # generate zero samples (inspired by karpathys blog for testing)
             empty_timesteps = np.zeros((batch_size, 256))

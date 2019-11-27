@@ -37,15 +37,18 @@
         
         "base_test":            "vox1",
         "test_list":            "voxceleb1_veri_test.txt",
+        "test_single":          false,
 
         "condition":            "none",
         "label":                "speaker",
 
         "data_type":            "original",
         "batch_type":           "real",
+
+        "val_active":           true,
         "val_part":             "before",
-        
         "val_set":              0.2,
+
         "queue_size":           50,
         "batch_size":           10
     },

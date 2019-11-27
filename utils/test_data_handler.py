@@ -33,6 +33,7 @@ class TestDataGenerator:
         self.data_type = config.get('DATASET.data_type')
         self.receptive_field = self.config.get('MODEL.receptive_field')
         self.test_list = config.get('DATASET.test_list')
+        self.test_single = config.get('DATASET.test_single')
         self.test_data = get_test_list(self.test_dataset, self.test_list)
         self.test_statistics = []
 
@@ -56,17 +57,24 @@ class TestDataGenerator:
                     file_name = f.split('/')[1] + '/' + f.split('/')[2]
                     i = names.index(file_name)
                     time = data['statistics/'+speaker][i]
-                    n_chunks = math.floor(time / self.receptive_field)
-                    end = n_chunks * self.receptive_field
+                    if self.test_single:
+                        start = np.random.randint(time - self.receptive_field)
+                        n_chunks = 1
+                    else:
+                        start = 0
+                        n_chunks = math.floor(time / self.receptive_field)
+                    offset = n_chunks * self.receptive_field
+                    end = start + offset
                     if self.data_type == 'mel':
-                        end = end * 128
+                        start = start * 128
+                        end = start + offset * 128
                     self.test_statistics.append((speaker, i, f, end, n_chunks))
 
 
     def test_generator(self):
         with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
-            for (speaker, i, audio_name, end, n_chunks) in tqdm(self.test_statistics, ncols=100, ascii=True, desc='generating speaker embeddings'):
-                samples = np.array(np.split(data['data/' + speaker][i][:end], n_chunks))
+            for (speaker, i, audio_name, start, end, n_chunks) in tqdm(self.test_statistics, ncols=100, ascii=True, desc='generating speaker embeddings'):
+                samples = np.array(np.split(data['data/' + speaker][i][start:end], n_chunks))
                 if self.data_type == 'original':
                     samples = samples.reshape((n_chunks, self.receptive_field, 1))
                 elif self.data_type == 'mel':

@@ -26,7 +26,7 @@ def calculate_eer(full_model, test_data_handler):
         while True:
             audio_name, samples = gen.__next__()
             embedding = np.asarray(model.predict(np.array(samples)))
-            embeddings[audio_name] = np.linalg.norm(np.mean(embedding, axis=0))
+            embeddings[audio_name] = np.mean(embedding, axis=0)
     except:
         pass
 
@@ -36,10 +36,10 @@ def calculate_eer(full_model, test_data_handler):
     true_scores = []
     for (label, file1, file2) in tqdm(test_data_handler.test_data, ncols=100, ascii=True, desc='compare embeddings'):
         true_scores.append(int(label))
-        scores1.append(np.sum(embeddings[file1]*embeddings[file2]))
-        e = np.abs(embeddings[file1] - embeddings[file2])
-        scores2.append(1 - np.sum(e))
-        scores3.append(1 - np.sum(e) ** 2)
+        a, b = embeddings[file1], embeddings[file2]
+        scores1.append(np.sum(a*b))
+        scores2.append(1 - np.sum(np.abs(a - b)))
+        scores3.append(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
     time.sleep(1)
     print('calculate EER')

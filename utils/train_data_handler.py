@@ -25,17 +25,16 @@ def get_speaker_list(dataset, speaker_list):
     return speakers
 
 class TrainDataGenerator:
-    def __init__(self, config, train_speakers=None):
+    def __init__(self, config, val_active, train_speakers=None):
         self.config = config
         self.train_speakers = train_speakers
+        self.val_active = val_active
 
         self.dataset = config.get('DATASET.base')
         self.data_type = config.get('DATASET.data_type')
         self.label = config.get('DATASET.label')
         self.condition = config.get('DATASET.condition')
-        self.val_active = config.get('DATASET.val_active')
 
-        queue_size = config.get('DATASET.queue_size')
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
         speaker_list = config.get('DATASET.speaker_list')
@@ -80,7 +79,7 @@ class TrainDataGenerator:
                                 val_ids.append((i, 0, val_time))
                                 train_ids.append((i, val_time, time - val_time))
                             elif val_part == 'after':
-                                val_ids.append((i, time - val_time, val_time))
+                                val_ids.append((i, time - val_time, time))
                                 train_ids.append((i, 0, time - val_time))
                             
                         self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
@@ -91,14 +90,9 @@ class TrainDataGenerator:
                     for i, time in enumerate(data['statistics/'+speaker][:]):
                         train_ids.append((i, 0, time))
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
-
-        self.train_queue = Queue(queue_size)
-        self.val_queue = Queue(queue_size)
-
-        self.enqueuer = Process(target=self.sample_enqueuer)
-        self.exit_process = False
-        self.enqueuer.start()
         
+        self.start_enqueuer()
+
         self.steps_per_epoch = config.get('TRAINING.steps_per_epoch')
         if self.config.get('DATASET.batch_type') == 'overfit':
             self.steps_per_epoch = math.ceil(self.num_speakers / self.config.get('DATASET.batch_size'))
@@ -150,12 +144,13 @@ class TrainDataGenerator:
             speaker_ids = np.random.randint(self.num_speakers, size=batch_size)
             for speaker_id in speaker_ids:
                 samples.append(self.__draw_from_speaker__(self.train_speakers[speaker_id], receptive_field, dset, data))
-
+            
         samples, timesteps, speaker_samples = zip(*samples)
         samples = np.array(list(samples), dtype='float32')
         if self.data_type == 'original':
             samples = samples.reshape(samples.shape + (1,))
         return samples, np.array(list(timesteps), dtype='float32'), np.array(list(speaker_samples), dtype='float32')
+
 
 
     def sample_enqueuer(self):
@@ -236,6 +231,16 @@ class TrainDataGenerator:
                         self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                 except:
                     pass
+
+
+    def start_enqueuer(self):
+        queue_size = self.config.get('DATASET.queue_size')
+        self.train_queue = Queue(queue_size)
+        self.val_queue = Queue(queue_size)
+
+        self.enqueuer = Process(target=self.sample_enqueuer)
+        self.exit_process = False
+        self.enqueuer.start()
 
 
     def terminate_enqueuer(self):

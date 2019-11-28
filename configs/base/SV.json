@@ -29,6 +29,14 @@
         "skip_drop_rate":       0.2,
         "embedding_drop_rate":  0.2
     },
+
+
+
+    "SIM_MODEL": {
+        "filter_size":          32,
+        "method":               "add",
+        "num_epochs":           2000
+    },
     
 
     "DATASET": {

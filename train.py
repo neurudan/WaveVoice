@@ -1,9 +1,12 @@
 from utils.train_data_handler import TrainDataGenerator, get_speaker_list
 from utils.test_data_handler import TestDataGenerator
+from utils.sim_data_handler import SimDataGenerator
+
 from utils.path_handler import get_sweep_config_path, get_config_path
 from utils.config_handler import Config
 from utils.preprocessing import setup_datasets 
 
+from model.Similarity_MLP import build_similarity_MLP
 from model.WaveNet import build_WaveNet, make_trainable, change_output_dense
 
 from keras.engine import Input, Model
@@ -14,6 +17,8 @@ from keras import backend as K
 from wandb.keras import WandbCallback
 
 from clustering import ClusterCallback, calculate_eer
+
+import numpy as np
 
 import wandb
 import json
@@ -80,7 +85,7 @@ def train(config_name=None, project_name=None):
 
     if setting == 'normal':
         # Setup Train Data-Generator
-        train_data_generator = TrainDataGenerator(config)
+        train_data_generator = TrainDataGenerator(config, val_active)
         
         train_generator = train_data_generator.get_generator('train')
         train_steps = train_data_generator.steps_per_epoch
@@ -125,6 +130,7 @@ def train(config_name=None, project_name=None):
         num_speakers = config.get('HYPEREPOCH.num_speakers')
         pretrain_epochs = config.get('HYPEREPOCH.pretrain_epochs')
         num_hyperepochs = config.get('HYPEREPOCH.num_hyperepochs')
+        
 
         full_speaker_list = get_speaker_list(dataset, speaker_list)
 
@@ -143,7 +149,7 @@ def train(config_name=None, project_name=None):
 
 
             # Setup Train Data-Generator
-            train_data_generator = TrainDataGenerator(config, speakers)
+            train_data_generator = TrainDataGenerator(config, val_active, train_speakers=speakers)
             
             train_generator = train_data_generator.get_generator('train')
             train_steps = train_data_generator.steps_per_epoch
@@ -162,11 +168,13 @@ def train(config_name=None, project_name=None):
             if not initial_epoch:
                 model = change_output_dense(model, config)
                 
+
                 # Compile model
                 optimizer = setup_optimizer(config)
                 model.compile(optimizer=optimizer,
                               loss=loss,
                               metrics=['accuracy'])
+
 
                 # Train Model
                 model.fit_generator(train_generator,
@@ -182,11 +190,13 @@ def train(config_name=None, project_name=None):
                 model = make_trainable(model)
                 current_epoch += pretrain_epochs
 
+
             # Compile model
             optimizer = setup_optimizer(config)
             model.compile(optimizer=optimizer,
                           loss=loss,
                           metrics=['accuracy'])
+
 
             # Train Model
             model.fit_generator(train_generator,
@@ -196,21 +206,62 @@ def train(config_name=None, project_name=None):
                                 epochs=current_epoch + num_epochs,
                                 callbacks=[wandb_cb],
                                 initial_epoch=current_epoch)
-            
-            wandb.save('model_hyperepoch_%d.h5' % hyperepoch)
-            
+
             current_epoch += num_epochs
             initial_epoch = False
 
 
-            # Test Model (calculate EER)
-            eer1, eer2, eer3 = calculate_eer(model, test_data_generator)
-            wandb.log({'EER1': eer1, 'EER2': eer2, 'EER3': eer3, 'Hyperepoch': hyperepoch},
-                      step=current_epoch + 1)
-
-
             # Terminate enqueueing process
             train_data_generator.terminate_enqueuer()
+            
+
+            # Save model
+            wandb.save('model_hyperepoch_%d.h5' % hyperepoch)
+
+
+            # Setup Embedding model
+            embedding_model = Model(inputs=model.input,
+                                    outputs=model.layers[-2].output)
+
+
+            # Setup Train Data-Generator
+            train_data_generator = SimDataGenerator(config, embedding_model)
+            
+            train_generator = train_data_generator.get_generator('train')
+            train_steps = train_data_generator.steps_per_epoch
+
+            val_generator = None
+            val_steps = None
+            if batch_type == 'real' and val_active:
+                val_set = config.get('DATASET.val_set')
+                val_generator = train_data_generator.get_generator('val')
+                val_steps = int(train_steps * val_set / (1 - val_set))
+
+            
+            # Build and train similarity model
+            sim_model_epochs = config.get('SIM_MODEL.num_epochs')
+            sim_model = build_similarity_MLP(config)
+            optimizer = setup_optimizer(config)
+            sim_model.compile(optimizer=optimizer,
+                              loss='binary_crossentropy',
+                              metrics=['accuracy'])
+
+            sim_model.fit_generator(train_generator,
+                                    steps_per_epoch=train_steps,
+                                    validation_data=val_generator,
+                                    validation_steps=val_steps,
+                                    epochs=current_epoch + sim_model_epochs,
+                                    callbacks=[wandb_cb],
+                                    initial_epoch=current_epoch)
+
+            current_epoch += sim_model_epochs
+
+            # Test Model (calculate EER)
+            current_epoch += 1
+            eers = calculate_eer(model, test_data_generator, sim_model=sim_model)
+            eers['Hyperepoch'] = hyperepoch
+            wandb.log(eers, step=current_epoch + 1)
+
             if global_settings['mlflow']:
                 mlflow.end_run(status='FINISHED')
 

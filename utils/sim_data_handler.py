@@ -144,7 +144,7 @@ class SimDataGenerator:
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
                 samples_2 = [np.mean(x, axis=0) for x in samples_2]
-
+                import code; code.interact(local=dict(globals(), **locals()))
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 
 

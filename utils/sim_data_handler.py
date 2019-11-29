@@ -112,6 +112,7 @@ class SimDataGenerator:
                     s, c = self.__draw_sample__(data, set, speaker)
                     samples_2.extend(s)
                     chunks_2.append(chunks_2[-1] + c)
+                    labels.append(1)
 
                     speaker_1 = np.random.randint(self.num_speakers)
                     speaker_2 = np.random.randint(self.num_speakers)
@@ -124,6 +125,7 @@ class SimDataGenerator:
                     s, c = self.__draw_sample__(data, set, self.train_speakers[speaker_2])
                     samples_2.extend(s)
                     chunks_2.append(chunks_2[-1] + c)
+                    labels.append(0)
 
                 samples_1.extend(samples_2)
                 samples = samples_1

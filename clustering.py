@@ -34,8 +34,7 @@ def sim_model_score(a, b, sim_model):
     a = a.reshape((1,) + a.shape)
     b = b.reshape((1,) + b.shape)
     score = np.asarray(sim_model.predict([a,b]))
-    print(score)
-    return score[0]
+    return score[0][0]
     
 
 def calculate_eer(full_model, test_data_handler, sim_model=None):
@@ -50,8 +49,8 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
             audio_name, samples = gen.__next__()
             embedding = np.asarray(model.predict(np.array(samples)))
             embeddings[audio_name] = np.mean(embedding, axis=0)
-    except Exception as e:
-        print(e)
+    except:
+        pass
 
     scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
               'vgg': {'method': vgg_approach, 'scores': []},
@@ -63,7 +62,6 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
         scores['sim_model'] = {'method': sim_model_score, 'scores': []}
 
     true_scores = []
-    print(embeddings.keys())
     for (label, file1, file2) in tqdm(test_data_handler.test_data, ncols=100, ascii=True, desc='compare embeddings'):
         true_scores.append(int(label))
         

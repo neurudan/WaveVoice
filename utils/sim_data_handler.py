@@ -67,8 +67,7 @@ class SimDataGenerator:
                 sample_ids = list(train_ids.keys())
                 num_samples = len(sample_ids)
                 self.statistics[speaker] = {'train': train_ids, 'val': val_ids, 'sample_ids': sample_ids, 'num_samples': num_samples}
-        
-        self.start_enqueuer()
+        self.close = False
 
 
     def __get_sample_information__(self, start, end):
@@ -102,15 +101,12 @@ class SimDataGenerator:
         return np.mean(np.asarray(self.embedding_model.predict(samples)), axis=0)
         
 
-    def __sample_enqueuer__(self):
+    def batch_generator(self, set):
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
-            while not self.exit_process:
+            while not self.close:
                 samples_1 = []
                 samples_2 = []
                 labels = []
-                set = 'train'
-                if self.train_queue.qsize() > self.val_queue.qsize():
-                    set = 'val'
                 for _ in range(self.batch_size // 2):
                     speaker = self.train_speakers[np.random.randint(self.num_speakers)]
                     samples_1.append(self.__draw_sample__(data, set, speaker))
@@ -125,42 +121,18 @@ class SimDataGenerator:
                     samples_1.append(self.__draw_sample__(data, set, self.train_speakers[speaker_1]))
                     samples_2.append(self.__draw_sample__(data, set, self.train_speakers[speaker_2]))
                     labels.append(0)
-                try:
-                    if set == 'train':
-                        self.train_queue.put([[np.array(samples_1), np.array(samples_2)], np.array(labels)], timeout=0.5)
-                    else:
-                        self.val_queue.put([[np.array(samples_1), np.array(samples_2)], np.array(labels)], timeout=0.5)
-                except:
-                    pass
+                yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 
-
-
-    def start_enqueuer(self):
-        queue_size = self.config.get('DATASET.queue_size')
-        self.train_queue = Queue(queue_size)
-        self.val_queue = Queue(queue_size)
-
-        self.enqueuer = Process(target=self.__sample_enqueuer__)
-        self.exit_process = False
-        self.enqueuer.start()
-
-
-    def terminate_enqueuer(self):
-        print('stopping enqueuer...')
-        self.exit_process = True
-        time.sleep(5)
-        self.enqueuer.terminate()
-        print('enqueuer stopped.')
 
     def get_generator(self, generator):
         gen = self.batch_generator(generator)
         gen.__next__()
         return gen
 
-    def batch_generator(self, set):
-        queue = self.val_queue
-        if set == 'train':
-            queue = self.train_queue
-        while True:
-            [samples, label] = queue.get()
-            yield samples, label
+    def terminate_generator(self, generator):
+        self.close = True
+        try:
+            while True:
+                generator.__next__()
+        except:
+            pass

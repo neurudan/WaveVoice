@@ -228,13 +228,13 @@ def train(config_name=None, project_name=None):
 
 
             # Setup Train Data-Generator
-            train_data_generator = SimDataGenerator(config, embedding_model)
+            sim_data_generator = SimDataGenerator(config, embedding_model)
             
-            train_generator = train_data_generator.get_generator('train')
-            train_steps = train_data_generator.steps_per_epoch
+            train_generator = sim_data_generator.get_generator('train')
+            train_steps = sim_data_generator.steps_per_epoch
 
             val_set = config.get('DATASET.val_set')
-            val_generator = train_data_generator.get_generator('val')
+            val_generator = sim_data_generator.get_generator('val')
             val_steps = int(train_steps * val_set / (1 - val_set))
 
             
@@ -266,6 +266,9 @@ def train(config_name=None, project_name=None):
                 log = {'accuracy': np.mean(t_a), 'loss': np.mean(t_l), 'val_accuracy': np.mean(v_a), 'val_loss': np.mean(v_l), 'sim_ep': current_sim_epoch}
                 wandb.log(log, step=current_epoch)
 
+            sim_data_generator.terminate_generator(train_generator)
+            sim_data_generator.terminate_generator(val_generator)
+            
 
             # Test Model (calculate EER)
             current_epoch += 1

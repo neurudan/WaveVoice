@@ -141,15 +141,20 @@ class SimDataGenerator:
 
                 samples = np.split(samples_1, chunks_1)
                 samples_1 = samples[1:-1]
-                samples_2 = np.split(samples[-1], chunks_2)[1:-1]
+                samples_2 = np.split(samples[-1], chunks_2)
 
-                for x in samples_1:
-                    print(np.mean(x, axis=0).shape)
-                for x in samples_1:
-                    print(np.mean(x, axis=0).shape)
+                for i, x in enumerate(chunks_1):
+                    print(x)
+                    print(samples[i].shape)
+                    print()
+
+                for i, x in enumerate(chunks_2):
+                    print(x)
+                    print(samples_2[i].shape)
+                    print()
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
-                samples_2 = [np.mean(x, axis=0) for x in samples_2]
+                samples_2 = [np.mean(x, axis=0) for x in samples_2[1:-1]]
 
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 

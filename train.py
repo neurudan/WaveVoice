@@ -29,7 +29,7 @@ import argparse
 
 import mlflow
 import mlflow.keras
-
+import time
 
 def setup_optimizer(config):
     lr = config.get('OPTIMIZER.lr')
@@ -254,12 +254,14 @@ def train(config_name=None, project_name=None):
                     a, l = sim_model.train_on_batch(x, y)
                     t_a.append(a)
                     t_l.append(l)
+                time.sleep(1)
                 print('accuracy:     %.5f    loss:     %.5f'%(np.mean(t_a), np.mean(t_l)))
                 for _ in tqdm(range(val_steps), ncols=100, ascii=True, desc='val epoch %d'%epoch):
                     x, y = val_generator.__next__()
                     a, l = sim_model.test_on_batch(x, y)
                     v_a.append(a)
                     v_l.append(l)
+                time.sleep(1)
                 print('val_accuracy: %.5f    val_loss: %.5f\n'%(np.mean(v_a), np.mean(v_l)))
                 current_sim_epoch += 1
                 current_epoch += 1

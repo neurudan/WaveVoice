@@ -131,7 +131,6 @@ class SimDataGenerator:
                 samples = samples_1
                 samples = np.array(samples)
 
-
                 if self.data_type == 'original':
                     samples = samples.reshape((len(samples), self.receptive_field, 1))
                 elif self.data_type == 'mel':

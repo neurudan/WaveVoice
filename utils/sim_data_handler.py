@@ -91,14 +91,8 @@ class SimDataGenerator:
         if self.data_type == 'mel':
             start *= 128
             end *= 128
-        samples = np.array(np.split(data['data/' + speaker][sample_id][start:end], n_chunks))
-        if self.data_type == 'original':
-            samples = samples.reshape((n_chunks, self.receptive_field, 1))
-        elif self.data_type == 'mel':
-            samples = samples.reshape((n_chunks, self.receptive_field, 128))
-        elif self.data_type == 'ulaw':
-            samples = np.eye(256)[samples]
-        return np.mean(np.asarray(self.embedding_model.predict(samples)), axis=0)
+        samples = np.split(data['data/' + speaker][sample_id][start:end], n_chunks)
+        return samples, n_chunks
         
 
     def batch_generator(self, set):
@@ -106,21 +100,53 @@ class SimDataGenerator:
             while not self.close:
                 samples_1 = []
                 samples_2 = []
+                chunks_1 = [0]
+                chunks_2 = [0]
                 labels = []
                 for _ in range(self.batch_size // 2):
                     speaker = self.train_speakers[np.random.randint(self.num_speakers)]
-                    samples_1.append(self.__draw_sample__(data, set, speaker))
-                    samples_2.append(self.__draw_sample__(data, set, speaker))
-                    labels.append(1)
+                    s, c = self.__draw_sample__(data, set, speaker)
+                    samples_1.extend(s)
+                    chunks_1.append(chunks_1[-1] + c)
+
+                    s, c = self.__draw_sample__(data, set, speaker)
+                    samples_2.extend(s)
+                    chunks_2.append(chunks_2[-1] + c)
 
                     speaker_1 = np.random.randint(self.num_speakers)
                     speaker_2 = np.random.randint(self.num_speakers)
                     while speaker_1 == speaker_2:
                         speaker_2 = np.random.randint(self.num_speakers)
+                    s, c = self.__draw_sample__(data, set, self.train_speakers[speaker_1])
+                    samples_1.extend(s)
+                    chunks_1.append(chunks_1[-1] + c)
 
-                    samples_1.append(self.__draw_sample__(data, set, self.train_speakers[speaker_1]))
-                    samples_2.append(self.__draw_sample__(data, set, self.train_speakers[speaker_2]))
-                    labels.append(0)
+                    s, c = self.__draw_sample__(data, set, self.train_speakers[speaker_2])
+                    samples_2.extend(s)
+                    chunks_2.append(chunks_2[-1] + c)
+                
+                samples_1 = np.array(samples_1)
+                samples_2 = np.array(samples_2)
+
+                if self.data_type == 'original':
+                    samples_1 = samples_1.reshape((len(samples_1), self.receptive_field, 1))
+                    samples_2 = samples_2.reshape((len(samples_2), self.receptive_field, 1))
+                elif self.data_type == 'mel':
+                    samples_1 = samples_1.reshape((len(samples_1), self.receptive_field, 128))
+                    samples_2 = samples_2.reshape((len(samples_2), self.receptive_field, 128))
+                elif self.data_type == 'ulaw':
+                    samples_1 = np.eye(256)[samples_1]
+                    samples_2 = np.eye(256)[samples_2]
+                
+                samples_1 = np.asarray(self.embedding_model.predict(samples_1))
+                samples_2 = np.asarray(self.embedding_model.predict(samples_2))
+
+                samples_1 = np.split(samples_1, chunks_1)[1:-1]
+                samples_2 = np.split(samples_2, chunks_2)[1:-1]
+
+                samples_1 = [np.mean(x, axis=0) for x in samples_1]
+                samples_2 = [np.mean(x, axis=0) for x in samples_2]
+
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 
 

@@ -128,6 +128,10 @@ class SimDataGenerator:
                 samples_1.extend(samples_2)
                 samples = samples_1
                 samples = np.array(samples)
+                stop = False
+                import code; 
+                while not stop:
+                    code.interact(local=dict(globals(), **locals()))
 
                 if self.data_type == 'original':
                     samples = samples.reshape((len(samples), self.receptive_field, 1))
@@ -144,7 +148,10 @@ class SimDataGenerator:
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
                 samples_2 = [np.mean(x, axis=0) for x in samples_2]
-                import code; code.interact(local=dict(globals(), **locals()))
+                stop = False
+                import code; 
+                while not stop:
+                    code.interact(local=dict(globals(), **locals()))
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 
 

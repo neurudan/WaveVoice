@@ -63,8 +63,10 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
         scores['sim_model'] = {'method': sim_model_score, 'scores': []}
 
     true_scores = []
+    print(embeddings.keys())
     for (label, file1, file2) in tqdm(test_data_handler.test_data, ncols=100, ascii=True, desc='compare embeddings'):
         true_scores.append(int(label))
+        
         a, b = embeddings[file1], embeddings[file2]
         for k in scores:
             scores[k]['scores'].append(scores[k]['method'](a, b, sim_model))

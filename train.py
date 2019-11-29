@@ -16,6 +16,8 @@ from keras import backend as K
 
 from wandb.keras import WandbCallback
 
+from tqdm import tqdm
+
 from clustering import ClusterCallback, calculate_eer
 
 import numpy as np
@@ -137,11 +139,12 @@ def train(config_name=None, project_name=None):
         initial_epoch = True
         current_speaker_id = 0
         current_epoch = 0
+        current_sim_epoch = 0
 
         for hyperepoch in range(num_hyperepochs):
 
             speakers = []
-            for i in range(num_speakers):
+            for _ in range(num_speakers):
                 if len(full_speaker_list) == current_speaker_id:
                     current_speaker_id = 0
                 speakers.append(full_speaker_list[current_speaker_id])
@@ -230,12 +233,9 @@ def train(config_name=None, project_name=None):
             train_generator = train_data_generator.get_generator('train')
             train_steps = train_data_generator.steps_per_epoch
 
-            val_generator = None
-            val_steps = None
-            if batch_type == 'real' and val_active:
-                val_set = config.get('DATASET.val_set')
-                val_generator = train_data_generator.get_generator('val')
-                val_steps = int(train_steps * val_set / (1 - val_set))
+            val_set = config.get('DATASET.val_set')
+            val_generator = train_data_generator.get_generator('val')
+            val_steps = int(train_steps * val_set / (1 - val_set))
 
             
             # Build and train similarity model
@@ -246,21 +246,32 @@ def train(config_name=None, project_name=None):
                               loss='binary_crossentropy',
                               metrics=['accuracy'])
 
-            sim_model.fit_generator(train_generator,
-                                    steps_per_epoch=train_steps,
-                                    validation_data=val_generator,
-                                    validation_steps=val_steps,
-                                    epochs=current_epoch + sim_model_epochs,
-                                    callbacks=[wandb_cb],
-                                    initial_epoch=current_epoch)
+            print('Training Similiarity model...')
+            for epoch in range(sim_model_epochs):
+                t_a, t_l, v_a, v_l = [], [], [], []
+                for _ in tqdm(range(train_steps), ncols=100, ascii=True, desc='train epoch %d'%epoch):
+                    x, y = train_generator.__next__()
+                    a, l = sim_model.train_on_batch(x, y)
+                    t_a.append(a)
+                    t_l.append(l)
+                print('accuracy:     %.5f    loss:     %.5f'%(np.mean(t_a), np.mean(t_l)))
+                for _ in tqdm(range(val_steps), ncols=100, ascii=True, desc='val epoch %d'%epoch):
+                    x, y = val_generator.__next__()
+                    a, l = sim_model.test_on_batch(x, y)
+                    v_a.append(a)
+                    v_l.append(l)
+                print('val_accuracy: %.5f    val_loss: %.5f\n'%(np.mean(v_a), np.mean(v_l)))
+                current_sim_epoch += 1
+                current_epoch += 1
+                log = {'accuracy': np.mean(t_a), 'loss': np.mean(t_l), 'val_accuracy': np.mean(v_a), 'val_loss': np.mean(v_l), 'sim_ep': current_sim_epoch}
+                wandb.log(log, step=current_epoch)
 
-            current_epoch += sim_model_epochs
 
             # Test Model (calculate EER)
             current_epoch += 1
             eers = calculate_eer(model, test_data_generator, sim_model=sim_model)
             eers['Hyperepoch'] = hyperepoch
-            wandb.log(eers, step=current_epoch + 1)
+            wandb.log(eers, step=current_epoch)
 
             if global_settings['mlflow']:
                 mlflow.end_run(status='FINISHED')

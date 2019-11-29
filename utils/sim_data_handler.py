@@ -126,7 +126,6 @@ class SimDataGenerator:
                     chunks_2.append(chunks_2[-1] + c)
 
                 samples_1.extend(samples_2)
-                print(len(samples_1))
                 samples = samples_1
                 samples = np.array(samples)
 
@@ -139,21 +138,18 @@ class SimDataGenerator:
                     samples = np.eye(256)[samples]
                 
                 samples = np.asarray(self.embedding_model.predict(samples))
-                print(samples.shape)
 
                 samples = np.split(samples_1, chunks_1)
-                print(len(samples))
-                print()
                 samples_1 = samples[1:-1]
-                print(len(samples_1))
                 samples_2 = np.split(samples[-1], chunks_2)[1:-1]
-                print(len(samples_2))
-                print()
+
+                for x in samples_1:
+                    print(np.mean(x, axis=0).shape)
+                for x in samples_1:
+                    print(np.mean(x, axis=0).shape)
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
-                print(len(samples_1))
                 samples_2 = [np.mean(x, axis=0) for x in samples_2]
-                print(len(samples_2))
 
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 

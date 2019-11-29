@@ -126,6 +126,7 @@ class SimDataGenerator:
                     chunks_2.append(chunks_2[-1] + c)
 
                 samples_1.extend(samples_2)
+                samples = samples_1
                 samples = np.array(samples)
 
                 if self.data_type == 'original':

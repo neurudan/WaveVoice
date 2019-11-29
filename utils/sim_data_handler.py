@@ -124,8 +124,9 @@ class SimDataGenerator:
                     s, c = self.__draw_sample__(data, set, self.train_speakers[speaker_2])
                     samples_2.extend(s)
                     chunks_2.append(chunks_2[-1] + c)
-                
-                samples = np.array(samples_1.extend(samples_2))
+
+                samples_1.extend(samples_2)
+                samples = np.array(samples)
 
                 if self.data_type == 'original':
                     samples = samples.reshape((len(samples), self.receptive_field, 1))

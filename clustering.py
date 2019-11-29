@@ -50,8 +50,8 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
             audio_name, samples = gen.__next__()
             embedding = np.asarray(model.predict(np.array(samples)))
             embeddings[audio_name] = np.mean(embedding, axis=0)
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
               'vgg': {'method': vgg_approach, 'scores': []},

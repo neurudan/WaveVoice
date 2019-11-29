@@ -35,7 +35,7 @@
     "SIM_MODEL": {
         "filter_size":          32,
         "method":               "add",
-        "num_epochs":           10
+        "num_epochs":           1
     },
     
 

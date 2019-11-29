@@ -68,7 +68,7 @@ class TestDataGenerator:
                     if self.data_type == 'mel':
                         start = start * 128
                         end = start + offset * 128
-                    self.test_statistics.append((speaker, i, f, end, n_chunks))
+                    self.test_statistics.append((speaker, i, f, start, end, n_chunks))
 
 
     def test_generator(self):

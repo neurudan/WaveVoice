@@ -125,24 +125,20 @@ class SimDataGenerator:
                     samples_2.extend(s)
                     chunks_2.append(chunks_2[-1] + c)
                 
-                samples_1 = np.array(samples_1)
-                samples_2 = np.array(samples_2)
+                samples = np.array(samples_1.extend(samples_2))
 
                 if self.data_type == 'original':
-                    samples_1 = samples_1.reshape((len(samples_1), self.receptive_field, 1))
-                    samples_2 = samples_2.reshape((len(samples_2), self.receptive_field, 1))
+                    samples = samples.reshape((len(samples), self.receptive_field, 1))
                 elif self.data_type == 'mel':
-                    samples_1 = samples_1.reshape((len(samples_1), self.receptive_field, 128))
-                    samples_2 = samples_2.reshape((len(samples_2), self.receptive_field, 128))
+                    samples = samples.reshape((len(samples), self.receptive_field, 128))
                 elif self.data_type == 'ulaw':
-                    samples_1 = np.eye(256)[samples_1]
-                    samples_2 = np.eye(256)[samples_2]
+                    samples = np.eye(256)[samples]
                 
-                samples_1 = np.asarray(self.embedding_model.predict(samples_1))
-                samples_2 = np.asarray(self.embedding_model.predict(samples_2))
+                samples = np.asarray(self.embedding_model.predict(samples))
 
-                samples_1 = np.split(samples_1, chunks_1)[1:-1]
-                samples_2 = np.split(samples_2, chunks_2)[1:-1]
+                samples = np.split(samples_1, chunks_1)
+                samples_1 = samples[1:-1]
+                samples_2 = np.split(samples[-1], chunks_2)[1:-1]
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
                 samples_2 = [np.mean(x, axis=0) for x in samples_2]

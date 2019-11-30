@@ -251,14 +251,14 @@ def train(config_name=None, project_name=None):
                 t_a, t_l, v_a, v_l = [], [], [], []
                 for _ in tqdm(range(train_steps), ncols=100, ascii=True, desc='train epoch %d'%epoch):
                     x, y = train_generator.__next__()
-                    a, l = sim_model.train_on_batch(x, y)
+                    l, a = sim_model.train_on_batch(x, y)
                     t_a.append(a)
                     t_l.append(l)
                 time.sleep(1)
                 print('accuracy:     %.5f    loss:     %.5f'%(np.mean(t_a), np.mean(t_l)))
                 for _ in tqdm(range(val_steps), ncols=100, ascii=True, desc='val epoch %d'%epoch):
                     x, y = val_generator.__next__()
-                    a, l = sim_model.test_on_batch(x, y)
+                    l, a = sim_model.test_on_batch(x, y)
                     v_a.append(a)
                     v_l.append(l)
                 time.sleep(1)

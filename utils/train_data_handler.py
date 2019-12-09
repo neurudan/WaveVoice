@@ -74,9 +74,6 @@ class TrainDataGenerator:
                     for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):
                         train_ids = []
                         val_ids = []
-                        n1 = 0
-                        n2 = 0
-                        n3 = 0
                         for i, time in enumerate(data['statistics/'+speaker][:]):
                             if time > receptive_field:
                                 val_time = int(time * val_set)
@@ -178,11 +175,9 @@ class TrainDataGenerator:
                         if True:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                                print(samples.shape)
                                 self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                                print(samples.shape)
                                 self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                         #except:
                         #    pass

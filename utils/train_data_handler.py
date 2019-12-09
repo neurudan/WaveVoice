@@ -75,16 +75,16 @@ class TrainDataGenerator:
                         train_ids = []
                         val_ids = []
                         for i, time in enumerate(data['statistics/'+speaker][:]):
-                            val_time = int(time * val_set)
                             if time > receptive_field:
+                                val_time = int(time * val_set)
                                 if val_time < receptive_field:
-                                    val_time = receptive_field
-                                if time - val_time >= receptive_field:
+                                    val_time = receptive_field + 1
+                                if time - val_time >= receptive_field + 1:
                                     if val_part == 'before':
                                         val_ids.append((i, 0, val_time))
-                                        train_ids.append((i, val_time, time))
+                                        train_ids.append((i, val_time, time - val_time))
                                     elif val_part == 'after':
-                                        val_ids.append((i, time - val_time, time))
+                                        val_ids.append((i, time - val_time, val_time))
                                         train_ids.append((i, 0, time - val_time))
                                 else:
                                     train_ids.append((i, 0, time))
@@ -173,23 +173,14 @@ class TrainDataGenerator:
             with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
                 if self.val_active:
                     while not self.exit_process:
-                        try:
+                        if True:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                                print('val')
-                                print(samples.shape)
-                                print(timesteps.shape)
-                                print(speaker_samples.shape)
                                 self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                                print('train')
-                                print(samples.shape)
-                                print(timesteps.shape)
-                                print(speaker_samples.shape)
                                 self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                        except:
-                            pass
+
                 else: 
                     while not self.exit_process:
                         try:

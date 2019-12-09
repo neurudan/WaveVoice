@@ -80,10 +80,9 @@ class TrainDataGenerator:
                         for i, time in enumerate(data['statistics/'+speaker][:]):
                             if time > receptive_field:
                                 val_time = int(time * val_set)
-                                if val_time < receptive_field + 1:
-                                    val_time = receptive_field + 1
-                                if time - val_time >= receptive_field + 1:
-                                    n1 += 1
+                                if val_time < receptive_field + 2:
+                                    val_time = receptive_field + 2
+                                if time - val_time >= receptive_field + 2:
                                     if val_part == 'before':
                                         val_ids.append((i, 0, val_time))
                                         train_ids.append((i, val_time, time - val_time))
@@ -91,11 +90,7 @@ class TrainDataGenerator:
                                         val_ids.append((i, time - val_time, val_time))
                                         train_ids.append((i, 0, time - val_time))
                                 else:
-                                    n2 += 1
                                     train_ids.append((i, 0, time))
-                            else:
-                                n3 += 1
-                        print('%s: working=%d, train=%d, none=%d'%(speaker, n1, n2, n3))
                         self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
             else:
                 for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):

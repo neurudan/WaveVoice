@@ -38,6 +38,7 @@ class TrainDataGenerator:
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
         speaker_list = config.get('DATASET.speaker_list')
+        receptive_field = self.config.get('MODEL.receptive_field')
 
         if self.train_speakers is None:
             self.train_speakers = get_speaker_list(self.dataset, speaker_list)
@@ -75,13 +76,19 @@ class TrainDataGenerator:
                         val_ids = []
                         for i, time in enumerate(data['statistics/'+speaker][:]):
                             val_time = int(time * val_set)
-                            if val_part == 'before':
-                                val_ids.append((i, 0, val_time))
-                                train_ids.append((i, val_time, time - val_time))
-                            elif val_part == 'after':
-                                val_ids.append((i, time - val_time, time))
-                                train_ids.append((i, 0, time - val_time))
-                            
+                            if time > receptive_field:
+                                if val_time < receptive_field:
+                                    val_time = receptive_field
+                                if time - val_time >= receptive_field:
+                                    if val_part == 'before':
+                                        val_ids.append((i, 0, val_time))
+                                        train_ids.append((i, val_time, time))
+                                    elif val_part == 'after':
+                                        val_ids.append((i, time - val_time, time))
+                                        train_ids.append((i, 0, time - val_time))
+                                else:
+                                    train_ids.append((i, 0, time))
+                                    
                         self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
             else:
                 for speaker in tqdm(self.train_speakers, ncols=100, ascii=True, desc='build speaker statistics'):

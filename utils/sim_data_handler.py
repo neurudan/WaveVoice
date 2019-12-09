@@ -54,13 +54,13 @@ class SimDataGenerator:
                 val_ids = {}
                 for i, time in enumerate(data['statistics/'+speaker][:]):
                     val_time = int(time * self.val_set)
-                    if val_time < self.receptive_field:
-                        val_time = self.receptive_field
-                    if time - val_time >= self.receptive_field:
+                    if val_time <= self.receptive_field:
+                        val_time = self.receptive_field + 1
+                    if time - val_time > self.receptive_field:
 
                         if self.val_part == 'before':
                             val_ids[i] = self.__get_sample_information__(0, val_time)
-                            train_ids[i] = self.__get_sample_information__(val_time, time - val_time)
+                            train_ids[i] = self.__get_sample_information__(val_time, time)
                         elif self.val_part == 'after':
                             val_ids[i] = self.__get_sample_information__(time - val_time, time)
                             train_ids[i] = self.__get_sample_information__(0, time - val_time)
@@ -98,6 +98,7 @@ class SimDataGenerator:
     def batch_generator(self, set):
         with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
             while not self.close:
+                start = time.time()
                 samples_1 = []
                 samples_2 = []
                 chunks_1 = [0]
@@ -137,16 +138,20 @@ class SimDataGenerator:
                     samples = samples.reshape((len(samples), self.receptive_field, 128))
                 elif self.data_type == 'ulaw':
                     samples = np.eye(256)[samples]
-                
+                e1 = time.time()
                 samples = np.asarray(self.embedding_model.predict(samples))
-
+                e2 = time.time()
                 samples = np.split(samples, chunks_1)
                 samples_1 = samples[1:-1]
                 samples_2 = np.split(samples[-1], chunks_2)[1:-1]
 
                 samples_1 = [np.mean(x, axis=0) for x in samples_1]
                 samples_2 = [np.mean(x, axis=0) for x in samples_2]
-
+                e3 = time.time()
+                print('draw samples: %f'%(e1-start))
+                print('predict: %f'%(e2-e1))
+                print('relocate & mean: %f'%(e3-e2))
+                print()
                 yield [np.array(samples_1), np.array(samples_2)], np.array(labels)
 
 

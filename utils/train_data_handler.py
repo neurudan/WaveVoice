@@ -176,9 +176,17 @@ class TrainDataGenerator:
                         try:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
+                                print('val')
+                                print(samples.shape)
+                                print(timesteps.shape)
+                                print(speaker_samples.shape)
                                 self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
+                                print('train')
+                                print(samples.shape)
+                                print(timesteps.shape)
+                                print(speaker_samples.shape)
                                 self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                         except:
                             pass
@@ -264,9 +272,11 @@ class TrainDataGenerator:
         return gen
 
     def batch_generator(self, set):
-        queue = self.val_queue
+        queue = None
         if set == 'train':
             queue = self.train_queue
+        elif set == 'val':
+            queue = self.val_queue
         while True:
             [samples, timesteps, speaker_samples] = queue.get()
 

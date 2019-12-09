@@ -85,7 +85,6 @@ class ClusterCallback(Callback):
         self.test_data_handler = test_data_handler
 
     def on_epoch_end(self, epoch, logs):
-        print(logs)
         if epoch % 100 == 0:
 
             eers = calculate_eer(self.model, self.test_data_handler)

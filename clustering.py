@@ -56,7 +56,7 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
         while True:
             audio_name, samples = gen.__next__()
             embedding = np.asarray(model.predict(np.array(samples)), dtype='float32')
-            embeddings[audio_name] = np.nan_to_num(np.mean(embedding, axis=0))
+            embeddings[audio_name] = np.mean(embedding, axis=0)
     except:
         pass
 

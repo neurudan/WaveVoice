@@ -16,6 +16,7 @@ import wandb
 
 
 def cosine_similarity(a, b, sim_model):
+    a 
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 def vgg_approach(a, b, sim_model):
@@ -47,8 +48,8 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
     try:
         while True:
             audio_name, samples = gen.__next__()
-            embedding = np.asarray(model.predict(np.array(samples)))
-            embeddings[audio_name] = np.mean(embedding, axis=0)
+            embedding = np.asarray(model.predict(np.array(samples)), dtype='float32')
+            embeddings[audio_name] = np.nan_to_num(np.mean(embedding, axis=0))
     except:
         pass
 

@@ -30,14 +30,7 @@ import argparse
 import mlflow
 import mlflow.keras
 import time
-import atexit
 
-train_data_generator = None
-
-@atexit.register
-def terminate_subprocess():
-    global train_data_generator
-    train_data_generator.terminate_enqueuer()
 
 def setup_optimizer(config):
     lr = config.get('OPTIMIZER.lr')
@@ -54,8 +47,6 @@ def setup_optimizer(config):
 
 
 def train(config_name=None, project_name=None):
-    global train_data_generator
-
     K.clear_session()
     
     config = Config(config_name)

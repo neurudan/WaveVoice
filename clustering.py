@@ -24,7 +24,7 @@ def cosine_similarity(a, b, sim_model):
         print(np.linalg.norm(a))
         print(np.linalg.norm(b))
         sys.exit(0)
-        return 0
+    return v
 
 def vgg_approach(a, b, sim_model):
     return np.sum(a*b)

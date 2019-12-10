@@ -13,13 +13,12 @@ import numpy as np
 
 import time
 import wandb
+import math
 
 
 def cosine_similarity(a, b, sim_model):
-    try:
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    except Exception as e:
-        print(e)
+    v = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    if math.isnan(v) or math.isinf(v):
         print(a)
         print(b)
         print(np.linalg.norm(a))

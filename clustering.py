@@ -18,7 +18,7 @@ import math
 
 def cosine_similarity(a, b, sim_model):
     v = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    if math.isnan(v) or math.isinf(v):
+    if v is None or math.isnan(v) or math.isinf(v):
         print(a)
         print(b)
         print(np.linalg.norm(a))

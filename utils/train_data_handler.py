@@ -179,17 +179,17 @@ class TrainDataGenerator:
                         try:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
+                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.005)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
+                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.005)
                         except:
                             pass
                 else: 
                     while not self.exit_process:
                         try:
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                            self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
+                            self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.005)
                         except:
                             pass
         elif batch_type == 'zeros':

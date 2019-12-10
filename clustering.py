@@ -17,14 +17,7 @@ import math
 
 
 def cosine_similarity(a, b, sim_model):
-    v = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    if v is None or math.isnan(v) or math.isinf(v):
-        print(a)
-        print(b)
-        print(np.linalg.norm(a))
-        print(np.linalg.norm(b))
-        sys.exit(0)
-    return v
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 def vgg_approach(a, b, sim_model):
     return np.sum(a*b)
@@ -93,7 +86,7 @@ class ClusterCallback(Callback):
         self.test_data_handler = test_data_handler
 
     def on_epoch_end(self, epoch, logs):
-        if epoch % 100 == 0:
+        if epoch % 500 == 0:
 
             eers = calculate_eer(self.model, self.test_data_handler)
             wandb.log(eers, step=epoch + 1)

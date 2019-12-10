@@ -16,8 +16,16 @@ import wandb
 
 
 def cosine_similarity(a, b, sim_model):
-    a 
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    try:
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    except Exception as e:
+        print(e)
+        print(a)
+        print(b)
+        print(np.linalg.norm(a))
+        print(np.linalg.norm(b))
+        sys.exit(0)
+        return 0
 
 def vgg_approach(a, b, sim_model):
     return np.sum(a*b)

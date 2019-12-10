@@ -3,7 +3,8 @@
         "num_epochs":           10000,
         "steps_per_epoch":      100,
 
-        "setting":              "hyperepochs"
+        "setting":              "hyperepochs",
+        "epochs_before_eer":    500
     },
 
 

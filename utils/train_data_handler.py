@@ -97,6 +97,10 @@ class TrainDataGenerator:
                         train_ids.append((i, 0, time))
                     self.statistics[speaker] = {'train': train_ids, 'val': val_ids}
         
+        queue_size = self.config.get('DATASET.queue_size')
+        self.train_queue = Queue(queue_size)
+        self.val_queue = Queue(queue_size)
+        self.enqueuers = []
         self.start_enqueuer()
 
         self.steps_per_epoch = config.get('TRAINING.steps_per_epoch')
@@ -175,17 +179,17 @@ class TrainDataGenerator:
                         try:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
+                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
+                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
                         except:
                             pass
                 else: 
                     while not self.exit_process:
                         try:
                             samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                            self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
+                            self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.01)
                         except:
                             pass
         elif batch_type == 'zeros':
@@ -240,21 +244,19 @@ class TrainDataGenerator:
 
 
     def start_enqueuer(self):
-        queue_size = self.config.get('DATASET.queue_size')
-        self.train_queue = Queue(queue_size)
-        self.val_queue = Queue(queue_size)
-
-        self.enqueuer = Process(target=self.sample_enqueuer)
         self.exit_process = False
-        self.enqueuer.start()
+        for _ in range(4):
+            enqueuer = Process(target=self.sample_enqueuer)
+            enqueuer.start()
+            self.enqueuers.append(enqueuer)
 
 
     def terminate_enqueuer(self):
-        print('stopping enqueuer...')
         self.exit_process = True
         time.sleep(5)
-        self.enqueuer.terminate()
-        print('enqueuer stopped.')
+        for enqueuer in self.enqueuers:
+            enqueuer.terminate()
+        self.enqueuers = []
 
 
     def get_generator(self, generator):

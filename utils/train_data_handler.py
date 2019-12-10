@@ -172,15 +172,15 @@ class TrainDataGenerator:
             with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
                 if self.val_active:
                     while not self.exit_process:
-                        if True:
+                        try:
                             if self.train_queue.qsize() > self.val_queue.qsize():
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
                                 self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
                             else:
                                 samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
                                 self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.5)
-                        #except:
-                        #    pass
+                        except:
+                            pass
                 else: 
                     while not self.exit_process:
                         try:

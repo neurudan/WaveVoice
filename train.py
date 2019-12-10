@@ -30,7 +30,12 @@ import argparse
 import mlflow
 import mlflow.keras
 import time
+import atexit
 
+
+@atexit.register
+def terminate_subprocesses():
+    os.system('ps aux | grep "python setup.py" | awk "{print $2}" | xargs kill')
 
 def setup_optimizer(config):
     lr = config.get('OPTIMIZER.lr')

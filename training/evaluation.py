@@ -59,8 +59,6 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
 
     test_lists = test_data_handler.test_lists
     for list_name in test_lists:
-        data = test_lists[list_name]
-        
         scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
                   'vgg': {'method': vgg_approach, 'scores': []},
                   'vgg_norm': {'method': vgg_approach_norm, 'scores': []},
@@ -71,7 +69,7 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
             scores['sim_model'] = {'method': sim_model_score, 'scores': []}        
         
         true_scores = []
-        for (label, file1, file2) in tqdm(data, ncols=100, ascii=True, desc='compare embeddings'):
+        for (label, file1, file2) in tqdm(test_lists[list_name], ncols=100, ascii=True, desc='compare embeddings'):
             true_scores.append(int(label))
             
             a, b = embeddings[file1], embeddings[file2]

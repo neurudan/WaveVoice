@@ -38,9 +38,8 @@ class TestDataGenerator:
         self.test_dataset = config.get('DATASET.base_test')
         self.data_type = config.get('DATASET.data_type')
         self.receptive_field = self.config.get('MODEL.receptive_field')
-        self.test_lists = config.get('DATASET.test_lists')
         self.test_single = config.get('DATASET.test_single')
-        self.test_data, full_list = get_test_list(self.test_dataset, self.test_lists)
+        self.test_lists, full_list = get_test_list(self.test_dataset, config.get('DATASET.test_lists'))
         self.test_statistics = []
 
         with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:

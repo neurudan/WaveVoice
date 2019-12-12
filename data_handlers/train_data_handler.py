@@ -247,7 +247,7 @@ class TrainDataGenerator:
 
     def start_enqueuer(self):
         self.exit_process = False
-        for _ in range(1):
+        for _ in range(8):
             enqueuer = Process(target=self.sample_enqueuer)
             enqueuer.start()
             self.enqueuers.append(enqueuer)

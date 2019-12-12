@@ -10,7 +10,7 @@
 
     "MODEL": {
         "dilation_base":        3,
-        "dilation_depth":       8,
+        "dilation_depth":       2,
 
         "filter_size":          3,
         "num_filters":          64,
@@ -46,7 +46,10 @@
         
         "base_test":            "vox1",
         "test_lists": {
-            "simple":           "voxceleb1_veri_test.txt"
+            "simple":           "voxceleb1_veri_test.txt",
+            "simple_fixed":     "voxceleb1_veri_test_fixed.txt",
+            "hard":             "voxceleb1_veri_test_hard.txt",
+            "hard_fixed":       "voxceleb1_veri_test_hard_fixed.txt"
         },
 
         "test_single":          false,

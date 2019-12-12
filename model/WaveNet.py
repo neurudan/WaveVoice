@@ -11,8 +11,8 @@ def build_WaveNet(config):
     num_filters = config.get('MODEL.num_filters')
     reverse = config.get('MODEL.reverse')
 
-    loss = 'categorical_crossentropy'
-    if config.get('MODEL.loss') == 'angular_margin':
+    loss = config.get('MODEL.loss')
+    if loss == 'angular_margin':
         loss = AngularLoss(config)
         config.set('loss', loss)
         loss = loss.angular_loss

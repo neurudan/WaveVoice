@@ -1,12 +1,3 @@
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module='tensorflow')
-warnings.filterwarnings("ignore", category=UserWarning, module='keras')
-warnings.filterwarnings("ignore", category=UserWarning, module='wandb')
-
-import logging
-logging.getLogger('tensorflow').disabled = True
-logging.getLogger('wandb').disabled = True
-
 from wandb.util import set_api_key
 from wandb.apis import InternalApi
 from wandb import wandb_dir, util
@@ -14,27 +5,35 @@ from wandb import wandb_dir, util
 from databricks_cli.configure.provider import DatabricksConfig, update_and_persist_config
 
 from utils.path_handler import get_sweep_config_path, get_config_path
+from utils.preprocessing import setup_datasets
 
 from shutil import copyfile
 from train import train
-from time import sleep
 
 import wandb
-import sys
-import os
-import os.path
 import json
 import subprocess
-import fcntl
+import argparse
+import os
+import os.path
 
 
 if __name__ == '__main__':
-    project_name = 'no_project_666!'
-    if len(sys.argv) > 1:
-        project_name = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Training for the WaveVoice Project')
+
+    parser.add_argument('--config', '-c', dest='config', default='no_project_123!', help='The config file to use')
+    parser.add_argument('--setup', '-s', dest='setup', action='store_true', help='If passed, the datasets are being set up.')
+
+    args = parser.parse_args()
+    project_name = args.config
+
+    if args.setup:
+        setup_datasets()
+
     if not os.path.isfile(get_sweep_config_path(project_name + '.json')):
         print('create dat damn file or learn typin\'!!!')
     else:
+        # Load credentials for wandb and mlflow
         path = get_config_path() + 'credentials.json'
         credentials = json.load(open(path, 'r'))
 

@@ -9,21 +9,27 @@ import time
 import math
 
 
-def get_test_list(dataset, test_list):
-    file_path = get_test_list_files(dataset)[test_list]
-    lines = []
-    with open(file_path) as f:
-        lines = f.readlines()
-    lines = list(set(lines))
-    if '\n' in lines:
-        lines.remove('\n')
-    data = []
-    for line in lines:
-        if line[-1] == '\n':
-            line = line[:-1]
-        parts = line.split(' ')
-        data.append(parts)
-    return data
+def get_test_list(dataset, test_lists):
+    lists = {}
+    full_list = []
+    for k in test_lists:
+        test_list = test_lists[k]
+        file_path = get_test_list_files(dataset)[test_list]
+        lines = []
+        with open(file_path) as f:
+            lines = f.readlines()
+        lines = list(set(lines))
+        if '\n' in lines:
+            lines.remove('\n')
+        data = []
+        for line in lines:
+            if line[-1] == '\n':
+                line = line[:-1]
+            parts = line.split(' ')
+            data.append(parts)
+            full_list.append(parts)
+        lists[k] = data
+    return lists, full_list
 
 
 class TestDataGenerator:
@@ -32,14 +38,14 @@ class TestDataGenerator:
         self.test_dataset = config.get('DATASET.base_test')
         self.data_type = config.get('DATASET.data_type')
         self.receptive_field = self.config.get('MODEL.receptive_field')
-        self.test_list = config.get('DATASET.test_list')
+        self.test_lists = config.get('DATASET.test_lists')
         self.test_single = config.get('DATASET.test_single')
-        self.test_data = get_test_list(self.test_dataset, self.test_list)
+        self.test_data, full_list = get_test_list(self.test_dataset, self.test_lists)
         self.test_statistics = []
 
         with h5py.File(get_dataset_file(self.test_dataset, self.data_type), 'r') as data:
             files = []
-            for (_, file1, file2) in self.test_data:
+            for (_, file1, file2) in full_list:
                 files.append(file1)
                 files.append(file2)
             files = list(set(files))

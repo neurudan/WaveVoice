@@ -9,7 +9,10 @@ import time
 import math
 
 
-def get_speaker_list(dataset, speaker_list):
+def get_speaker_list(config):
+    dataset = config.get('DATASET.base')
+    speaker_list = config.get('DATASET.speaker_list')
+
     file_path = get_speaker_list_files(dataset)[speaker_list]
     lines = []
     with open(file_path) as f:
@@ -37,11 +40,10 @@ class TrainDataGenerator:
 
         val_set = config.get('DATASET.val_set')
         val_part = config.get('DATASET.val_part')
-        speaker_list = config.get('DATASET.speaker_list')
         receptive_field = self.config.get('MODEL.receptive_field')
 
         if self.train_speakers is None:
-            self.train_speakers = get_speaker_list(self.dataset, speaker_list)
+            self.train_speakers = get_speaker_list(self.config)
         self.num_speakers = len(self.train_speakers)
 
         if self.label in ['single_timestep', 'all_timesteps']:
@@ -245,7 +247,7 @@ class TrainDataGenerator:
 
     def start_enqueuer(self):
         self.exit_process = False
-        for _ in range(8):
+        for _ in range(1):
             enqueuer = Process(target=self.sample_enqueuer)
             enqueuer.start()
             self.enqueuers.append(enqueuer)
@@ -260,9 +262,22 @@ class TrainDataGenerator:
 
 
     def get_generator(self, generator):
-        gen = self.batch_generator(generator)
-        gen.__next__()
-        return gen
+        batch_type = self.config.get('DATASET.batch_type')
+        val_active = self.config.get('DATASET.val_active')
+        val_set = self.config.get('DATASET.val_set')
+        
+        gen, steps = None, None
+        if generator == 'val':
+            if batch_type == 'real' and val_active:
+                gen = self.batch_generator(generator)
+                gen.__next__()
+                steps = int(self.steps_per_epoch * val_set / (1 - val_set))
+        else:
+            gen = self.batch_generator(generator)
+            gen.__next__()
+            steps = self.steps_per_epoch
+        return gen, steps
+
 
     def batch_generator(self, set):
         queue = None

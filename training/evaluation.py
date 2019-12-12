@@ -45,41 +45,49 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
                   outputs=full_model.layers[-2].output)
                   
     gen = test_data_handler.test_generator()
+    times = []
     try:
         while True:
             audio_name, samples = gen.__next__()
+            s = time.time()
             embedding = np.asarray(model.predict(np.array(samples)), dtype='float32')
+            times.append(time.time() - s)
             embeddings[audio_name] = np.mean(embedding, axis=0)
     except:
         pass
+    print(np.mean(times))
 
-    scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
-              'vgg': {'method': vgg_approach, 'scores': []},
-              'vgg_norm': {'method': vgg_approach_norm, 'scores': []},
-              'abs_diff': {'method': absolute_difference, 'scores': []},
-              'abs_diff_norm': {'method': absolute_difference_norm, 'scores': []}}
-    
-    if sim_model is not None:
-        scores['sim_model'] = {'method': sim_model_score, 'scores': []}
-
-    true_scores = []
-    for (label, file1, file2) in tqdm(test_data_handler.test_data, ncols=100, ascii=True, desc='compare embeddings'):
-        true_scores.append(int(label))
+    test_lists = test_data_handler.test_lists
+    for list_name in test_lists:
+        data = test_lists[list_name]
         
-        a, b = embeddings[file1], embeddings[file2]
-        for k in scores:
-            scores[k]['scores'].append(scores[k]['method'](a, b, sim_model))
+        scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
+                  'vgg': {'method': vgg_approach, 'scores': []},
+                  'vgg_norm': {'method': vgg_approach_norm, 'scores': []},
+                  'abs_diff': {'method': absolute_difference, 'scores': []},
+                  'abs_diff_norm': {'method': absolute_difference_norm, 'scores': []}}
+        
+        if sim_model is not None:
+            scores['sim_model'] = {'method': sim_model_score, 'scores': []}        
+        
+        true_scores = []
+        for (label, file1, file2) in tqdm(data, ncols=100, ascii=True, desc='compare embeddings'):
+            true_scores.append(int(label))
+            
+            a, b = embeddings[file1], embeddings[file2]
+            for k in scores:
+                scores[k]['scores'].append(scores[k]['method'](a, b, sim_model))
 
-    print('calculate EER')
-    eers = {}
-    for k in scores:
-        fpr, tpr, _ = roc_curve(true_scores, scores[k]['scores'], pos_label=1)
-        eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
-        eers['EER_'+k] = eer
+        print('calculate EER')
+        eers = {}
+        for k in scores:
+            fpr, tpr, _ = roc_curve(true_scores, scores[k]['scores'], pos_label=1)
+            eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+            eers['EER_'+list_name+'_'+k] = eer
     return eers
 
 
-class ClusterCallback(Callback):
+class EvalCallback(Callback):
     def __init__(self, config, model, test_data_handler):
         self.config = config
         self.model = model

@@ -4,7 +4,7 @@ import mlflow
 import os
 
 from utils.path_handler import get_base_config_path
-from utils.train_data_handler import get_speaker_list
+from data_handlers.train_data_handler import get_speaker_list
 
 
 class Config():
@@ -99,11 +99,9 @@ class Config():
         
         self.set('MODEL.receptive_field', receptive_field)        
 
-        dataset = self.get('DATASET.base')
         label = self.get('DATASET.label')
-        speaker_list = self.get('DATASET.speaker_list')
 
-        train_speakers = get_speaker_list(dataset, speaker_list)
+        train_speakers = get_speaker_list(self)
         num_speakers = len(train_speakers)
 
         if self.get('TRAINING.setting') == 'hyperepochs':

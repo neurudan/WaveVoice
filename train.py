@@ -13,7 +13,7 @@ import atexit
 
 @atexit.register
 def terminate_subprocesses():
-    os.system('ps aux | grep "python main.py" | awk "{print $2}" | xargs kill')
+    os.system('kill -9 $(pgrep -f "python main.py")')
 
 
 def train(config_name=None, project_name=None):

@@ -58,6 +58,7 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
     print(np.mean(times))
 
     test_lists = test_data_handler.test_lists
+    eers = {}
     for list_name in test_lists:
         scores = {'cos_sim': {'method': cosine_similarity, 'scores': []},
                   'vgg': {'method': vgg_approach, 'scores': []},
@@ -77,11 +78,11 @@ def calculate_eer(full_model, test_data_handler, sim_model=None):
                 scores[k]['scores'].append(scores[k]['method'](a, b, sim_model))
 
         print('calculate EER')
-        eers = {}
         for k in scores:
             fpr, tpr, _ = roc_curve(true_scores, scores[k]['scores'], pos_label=1)
             eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
             eers['EER_'+list_name+'_'+k] = eer
+    
     return eers
 
 

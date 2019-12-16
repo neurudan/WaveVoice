@@ -86,6 +86,6 @@
         "margin_cosface":       0.0,
         "margin_arcface":       0.0,
         "margin_sphereface":    1.0,
-        "scale":                10.0
+        "scale":                16.0
     }
 }

@@ -39,6 +39,7 @@ class TestDataGenerator:
         self.data_type = config.get('DATASET.data_type')
         self.receptive_field = self.config.get('MODEL.receptive_field')
         self.test_single = config.get('DATASET.test_single')
+        print(config.get('DATASET.test_lists'))
         self.test_lists, full_list = get_test_list(self.test_dataset, config.get('DATASET.test_lists'))
         self.test_statistics = []
 

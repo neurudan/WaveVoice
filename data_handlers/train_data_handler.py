@@ -129,7 +129,11 @@ class TrainDataGenerator:
         elif self.label == 'all_timesteps':
             next_timestep = sample[1:]
 
-        return sample[:-1], next_timestep
+        sample = sample[:-1]
+        mu = np.mean(sample, 0, keepdims=True)
+        std = np.std(sample, 0, keepdims=True)
+        sample = (sample - mu) / (std + 1e-5)
+        return sample, next_timestep
 
 
     def __draw_from_speaker__(self, speaker, receptive_field, dset, data):

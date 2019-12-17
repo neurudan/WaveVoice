@@ -71,7 +71,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
     for speaker in audio_dict:
         for i, [audio_file, audio_name] in enumerate(audio_dict[speaker]):
             x, fs = librosa.core.load(audio_file, sr=16000)
-            for function, name, _ in functions:
+            for function, name, _, _ in functions:
                 with h5py.File(h5_path + name, 'a') as f:
                     x_new, length = function(x, fs)
 

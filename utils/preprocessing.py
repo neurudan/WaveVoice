@@ -11,37 +11,47 @@ from utils.path_handler import get_dataset_path
 
 
 def orig(x, fs=16000):
-    return x
+    return x, len(x)
 
 def ulaw(x, fs=16000):
     u = 255
     x = np.sign(x) * (np.log(1 + u * np.abs(x)) / np.log(1 + u))
     x = (x + 1.) / 2. * np.iinfo('uint8').max
-    return x.astype('uint8')
+    return x.astype('uint8'), len(x)
 
 def mel_spectrogram(x, fs=16000):
     nperseg = int(10 * fs / 1000)
     mel_spectrogram = librosa.feature.melspectrogram(y=x, sr=fs, n_fft=1024, hop_length=nperseg)
     mel_spectrogram = np.log10(1 + 10000 * mel_spectrogram).T
-    return mel_spectrogram
+    length = len(mel_spectrogram)
+    mel_spectrogram = mel_spectrogram.flatten()
+    return mel_spectrogram, length
+
+def vgg_spectrogram(x, fs=16000):
+    linear = librosa.stft(x, n_fft=512, win_length=400, hop_length=160).T
+    mag, _ = librosa.magphase(linear)
+    mag_T = mag.T
+    freq, time = mag_T.shape
+    spec_mag = mag_T
+    return spec_mag
 
 
-functions = [[ulaw, 'ulaw.h5', h5py.special_dtype(vlen=np.dtype('uint8'))],
-             [orig, 'original.h5', h5py.special_dtype(vlen=np.dtype('float32'))],
-             [mel_spectrogram, 'mel.h5', h5py.special_dtype(vlen=np.dtype('float32'))]]
+functions = [[vgg_spectrogram, 'vgg.h5', h5py.special_dtype(vlen=np.dtype('float32')), 257]]
 
 
 def create_h5_file(h5_path, audio_dict, progress_file, name):
     print('extracting %s corpus:'%name, flush=True)
     global functions
     if not os.path.isfile(progress_file):
-        for _, name, data_type in functions:
+        for _, name, data_type, dim in functions:
             with h5py.File(h5_path + name, 'w') as f:
                 data = f.create_group('data')
                 audio_names = f.create_group('audio_names')
                 statistics = f.create_group('statistics')
                 for speaker in audio_dict:
                     shape = (len(audio_dict[speaker]),)
+                    if dim is not None:
+                        shape = (len(audio_dict[speaker]),dim,)
                     data.create_dataset(speaker, shape, dtype=data_type)
                     audio_names.create_dataset(speaker, shape, dtype=h5py.string_dtype(encoding='utf-8'))
                     statistics.create_dataset(speaker, shape, dtype='long')
@@ -63,12 +73,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
             x, fs = librosa.core.load(audio_file, sr=16000)
             for function, name, _ in functions:
                 with h5py.File(h5_path + name, 'a') as f:
-                    x_new = function(x, fs)
-                    length = len(x_new)
-                    total_length = 1
-                    for dim in list(x_new.shape):
-                        total_length *= dim
-                    x_new = x_new.reshape((total_length))
+                    x_new, length = function(x, fs)
 
                     f['data/'+speaker][i] = x_new
                     f['statistics/'+speaker][i] = length

@@ -33,7 +33,8 @@ def vgg_spectrogram(x, fs=16000):
     mag_T = mag.T
     freq, time = mag_T.shape
     spec_mag = mag_T
-    return spec_mag
+    print(spec_mag.shape)
+    return spec_mag, spec_mag.shape[1]
 
 
 functions = [[vgg_spectrogram, 'vgg.h5', h5py.special_dtype(vlen=np.dtype('float32')), 257]]

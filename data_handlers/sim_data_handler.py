@@ -134,8 +134,14 @@ class SimDataGenerator:
 
                 if self.data_type == 'original':
                     samples = samples.reshape((len(samples), self.receptive_field, 1))
+                    mu = np.mean(samples, 1, keepdims=True)
+                    std = np.std(samples, 1, keepdims=True)
+                    samples = (samples - mu) / (std + 1e-5)
                 elif self.data_type == 'mel':
                     samples = samples.reshape((len(samples), self.receptive_field, 128))
+                    mu = np.mean(samples, 1, keepdims=True)
+                    std = np.std(samples, 1, keepdims=True)
+                    samples = (samples - mu) / (std + 1e-5)
                 elif self.data_type == 'ulaw':
                     samples = np.eye(256)[samples]
                 e1 = time.time()

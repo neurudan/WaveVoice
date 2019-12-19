@@ -130,9 +130,11 @@ class TrainDataGenerator:
             next_timestep = sample[1:]
 
         sample = sample[:-1]
-        mu = np.mean(sample, 0, keepdims=True)
-        std = np.std(sample, 0, keepdims=True)
-        sample = (sample - mu) / (std + 1e-5)
+
+        if self.data_type == 'mel' or self.data_type == 'original':
+            mu = np.mean(sample, 0, keepdims=True)
+            std = np.std(sample, 0, keepdims=True)
+            sample = (sample - mu) / (std + 1e-5)
         return sample, next_timestep
 
 

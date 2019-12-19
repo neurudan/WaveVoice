@@ -82,8 +82,14 @@ class TestDataGenerator:
                 samples = np.array(np.split(data['data/' + speaker][i][start:end], n_chunks))
                 if self.data_type == 'original':
                     samples = samples.reshape((n_chunks, self.receptive_field, 1))
+                    mu = np.mean(samples, 1, keepdims=True)
+                    std = np.std(samples, 1, keepdims=True)
+                    samples = (samples - mu) / (std + 1e-5)
                 elif self.data_type == 'mel':
                     samples = samples.reshape((n_chunks, self.receptive_field, 128))
+                    mu = np.mean(samples, 1, keepdims=True)
+                    std = np.std(samples, 1, keepdims=True)
+                    samples = (samples - mu) / (std + 1e-5)
                 elif self.data_type == 'ulaw':
                     samples = np.eye(256)[samples]
                 yield audio_name, samples

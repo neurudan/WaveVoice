@@ -33,25 +33,22 @@ def vgg_spectrogram(x, fs=16000):
     mag_T = mag.T
     freq, time = mag_T.shape
     spec_mag = mag_T
-    return spec_mag, spec_mag.shape[1]
+    print(spec_mag.shape)
+    return spec_mag.flatten(), spec_mag.shape[1]
 
-
-functions = [[vgg_spectrogram, 'vgg.h5', h5py.special_dtype(vlen=np.dtype('float32')), 257]]
-
+functions = [[vgg_spectrogram, 'vgg.h5', h5py.special_dtype(vlen=np.dtype('float32'))]]
 
 def create_h5_file(h5_path, audio_dict, progress_file, name):
     print('extracting %s corpus:'%name, flush=True)
     global functions
     if not os.path.isfile(progress_file):
-        for _, name, data_type, dim in functions:
+        for _, name, data_type in functions:
             with h5py.File(h5_path + name, 'w') as f:
                 data = f.create_group('data')
                 audio_names = f.create_group('audio_names')
                 statistics = f.create_group('statistics')
                 for speaker in audio_dict:
                     shape = (len(audio_dict[speaker]),)
-                    if dim is not None:
-                        shape = (len(audio_dict[speaker]),dim,)
                     data.create_dataset(speaker, shape, dtype=data_type)
                     audio_names.create_dataset(speaker, shape, dtype=h5py.string_dtype(encoding='utf-8'))
                     statistics.create_dataset(speaker, shape, dtype='long')
@@ -71,7 +68,7 @@ def create_h5_file(h5_path, audio_dict, progress_file, name):
     for speaker in audio_dict:
         for i, [audio_file, audio_name] in enumerate(audio_dict[speaker]):
             x, fs = librosa.core.load(audio_file, sr=16000)
-            for function, name, _, _ in functions:
+            for function, name, _ in functions:
                 with h5py.File(h5_path + name, 'a') as f:
                     x_new, length = function(x, fs)
 

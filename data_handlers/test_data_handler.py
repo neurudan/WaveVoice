@@ -93,3 +93,4 @@ class TestDataGenerator:
                 elif self.data_type == 'ulaw':
                     samples = np.eye(256)[samples]
                 yield audio_name, samples
+                

@@ -171,7 +171,7 @@ class TrainDataGenerator:
 
 
 
-    def sample_enqueuer(self):
+    def sample_enqueuer(self, dset):
         batch_size = self.config.get('DATASET.batch_size')
         receptive_field = self.config.get('MODEL.receptive_field')
         batch_type = self.config.get('DATASET.batch_type')
@@ -180,17 +180,19 @@ class TrainDataGenerator:
         self.empty_sample = np.zeros((receptive_field, 256))
         self.empty_timestep = np.zeros(256)
         
+        queue = None
+        if dset == 'train':
+            queue = self.train_queue
+        elif dset == 'val':
+            queue = self.val_queue
+
         if batch_type == 'real':
             with h5py.File(get_dataset_file(self.dataset, self.data_type), 'r') as data:
                 if self.val_active:
                     while not self.exit_process:
                         try:
-                            if self.train_queue.qsize() > self.val_queue.qsize():
-                                samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'val', data)
-                                self.val_queue.put([samples, timesteps, speaker_samples], timeout=0.005)
-                            else:
-                                samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, 'train', data)
-                                self.train_queue.put([samples, timesteps, speaker_samples], timeout=0.005)
+                            samples, timesteps, speaker_samples = self.__get_batch__(batch_size, receptive_field, dset, data)
+                            queue.put([samples, timesteps, speaker_samples], timeout=1)
                         except:
                             pass
                 else: 
@@ -253,8 +255,12 @@ class TrainDataGenerator:
 
     def start_enqueuer(self):
         self.exit_process = False
-        for _ in range(8):
-            enqueuer = Process(target=self.sample_enqueuer)
+        for _ in range(32):
+            enqueuer = Process(target=self.sample_enqueuer, args=("train",))
+            enqueuer.start()
+            self.enqueuers.append(enqueuer)
+        for _ in range(16):
+            enqueuer = Process(target=self.sample_enqueuer, args=("val",))
             enqueuer.start()
             self.enqueuers.append(enqueuer)
 
